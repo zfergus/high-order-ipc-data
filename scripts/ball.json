@@ -1,0 +1,35 @@
+{
+    "default_params": "defaults.json",
+    "problem_params": {
+        "rhs": [0, 9.81, 0]
+    },
+    "tend": 5,
+    "time_steps": 200,
+    "mu": 0.5,
+    "friction_iterations": 20,
+    "meshes": [{
+        "mesh": "../meshes/cube-symmetric.msh",
+        "position": [0, 0, 0],
+        "body_id": 1
+    }],
+    "body_params": [{
+        "id": 1,
+        "E": 2e11,
+        "#E": 1e5,
+        "nu": 0.4,
+        "rho": 1000
+        }],
+    "collision_mesh": {
+        "mesh": "../meshes/ball.obj",
+        "linear_map": "../weights/cube-symmetric-to-ball.hdf5"
+    },
+    "obstacles": [{
+        "mesh": "../meshes/plane.obj",
+        "position": [0, -1, 0],
+        "rotation": [0, 0, -15],
+        "dimensions": [10, 0, 2]
+    }],
+    "export": {
+        "time_sequence": "ball.pvd"
+    }
+}
