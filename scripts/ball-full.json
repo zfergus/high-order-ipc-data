@@ -3,6 +3,9 @@
     "problem_params": {
         "rhs": [0, 9.81, 0]
     },
+    "solver_params": {
+        "broad_phase_method": "STQ_GPU"
+    },
     "tend": 5,
     "time_steps": 200,
     "mu": 0.5,
