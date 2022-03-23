@@ -10,7 +10,7 @@ from scipy.sparse import csc_matrix
 from tqdm import tqdm
 
 
-def get_bary(p, v):
+def compute_bary(p, v):
     """
     p: point of dense mesh; vector (3)
     v: vertices of single tet; 2d matrix (4, 3)
@@ -38,10 +38,12 @@ def get_bary(p, v):
     bary[2] = V_c / np.abs(V)
     bary[3] = V_d / np.abs(V)
 
+    assert(abs(bary.sum() - 1) < 1e-10)
+
     return bary
 
 
-def get_matrix(P, V, F):
+def compute_weights(P, V, F, quiet=True):
     """
     p: points of dense mesh; 2d matrix (|V_dense|, 3)
     V: vertices of tet mesh; 2d matrix (|V_tet|, 3)
@@ -49,6 +51,8 @@ def get_matrix(P, V, F):
     returns mapping matrix
     """
     M = np.zeros((P.shape[0], V.shape[0]))
+    if quiet:
+        def tqdm(x): return x
     for idx1, p in enumerate(tqdm(P)):
         flag = 0
         for idx2, f in enumerate(F):
@@ -57,7 +61,7 @@ def get_matrix(P, V, F):
                 tet_vert.append(V[f[i]])
             tet_vert = np.array(tet_vert)
 
-            bary = get_bary(p, tet_vert)
+            bary = compute_bary(p, tet_vert)
             if np.all(bary >= 0):
                 flag = 1
                 for i in range(4):
@@ -76,7 +80,7 @@ def get_matrix(P, V, F):
                     tet_vert.append(V[f[i]])
                 tet_vert = np.array(tet_vert)
 
-                bary = get_bary(p, tet_vert)
+                bary = compute_bary(p, tet_vert)
                 count = 0
                 for i in range(bary.shape[0]):  # counts negative terms
                     if bary[i] < 0:
@@ -88,6 +92,22 @@ def get_matrix(P, V, F):
                     break
 
     return M
+
+
+def save_weights(path, W):
+    h5f = h5py.File(path, 'w')
+
+    if scipy.sparse.issparse(my_matrix):
+        # Saving as sparse matrix
+        g = h5f.create_group('weights_csc')
+        g.create_dataset('data', data=W.data)
+        g.create_dataset('indptr', data=W.indptr)
+        g.create_dataset('indices', data=W.indices)
+        g.attrs['shape'] = W.shape
+    else:
+        h5f.create_dataset('weights', data=W)
+
+    h5f.close()
 
 
 def main():
@@ -108,7 +128,7 @@ def main():
     v_tet = np.array(mesh.points)
 
     if True:
-        M = get_matrix(v_tri, v_tet, f_tet)
+        M = get_matrix(v_tri, v_tet, f_tet, quiet=False)
         M_csc = csc_matrix(M)
         print(M)
 
@@ -119,9 +139,9 @@ def main():
 
         # Saving as sparse matrix
         g = h5f.create_group('Mcsc')
-        g.create_dataset('data',data=M_csc.data)
-        g.create_dataset('indptr',data=M_csc.indptr)
-        g.create_dataset('indices',data=M_csc.indices)
+        g.create_dataset('data', data=M_csc.data)
+        g.create_dataset('indptr', data=M_csc.indptr)
+        g.create_dataset('indices', data=M_csc.indices)
         g.attrs['shape'] = M_csc.shape
         h5f.close()
 
@@ -147,18 +167,18 @@ def main():
 
     ############### To read from sparse h5py file ###################
     f = h5py.File(
-    	f'{args.coarse_mesh.stem}-to-{args.dense_mesh.stem}.hdf5','r')
+        f'{args.coarse_mesh.stem}-to-{args.dense_mesh.stem}.hdf5', 'r')
 
     g2 = f['Mcsc']
 
-    M1 = csc_matrix((g2['data'][:],g2['indices'][:],
-    	g2['indptr'][:]), g2.attrs['shape'])
+    M1 = csc_matrix((g2['data'][:], g2['indices'][:],
+                     g2['indptr'][:]), g2.attrs['shape'])
 
     M = np.array(M1.todense())
     ##################################################################
 
-    print("Error:", np.linalg.norm(M @ v_tet - v_tri, np.inf)) # Checks error of mapping
-
+    # Checks error of mapping
+    print("Error:", np.linalg.norm(M @ v_tet - v_tri, np.inf))
 
 
 if __name__ == "__main__":
