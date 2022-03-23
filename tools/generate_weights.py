@@ -3,9 +3,7 @@ import meshio
 import h5py
 import argparse
 import pathlib
-
-from scipy.spatial.transform import Rotation as R
-from scipy.sparse import csc_matrix
+import scipy
 
 from tqdm import tqdm
 
@@ -110,6 +108,39 @@ def save_weights(path, W):
     h5f.close()
 
 
+def load_weights(path):
+    with h5py.File(path, 'r') as h5f:
+        if "weights_csc" in h5f:
+            g = f['weights_csc']
+            return scipy.sparse.csc_matrix((g['data'][:], g['indices'][:],
+                                            g['indptr'][:]), g.attrs['shape'])
+        else:
+            assert("weights" in h5f)
+            h5f.create_dataset('weights', data=W)
+            h5f = h5py.File(
+                f'{args.coarse_mesh.stem}-to-{args.dense_mesh.stem}.hdf5', 'r')
+            return h5f['weights']
+
+
+def test(v_tet, f_tet, f_tri, weights):
+    from scipy.spatial.transform import Rotation as R
+
+    T = np.array([
+        [1, 1, 0],
+        [0, 1, 0],
+        [0, 0, 1],
+    ])
+    T = R.from_rotvec(np.pi * np.random.random(3)).as_matrix() @ T
+
+    deformed_v_tet = v_tet @ T.T
+    mesh = meshio.Mesh(deformed_v_tet, [("tetra", f_tet)])
+    mesh.write("deformed_coarse.msh")
+
+    deformed_v_tri = weights @ deformed_v_tet
+    mesh = meshio.Mesh(deformed_v_tri, [("triangle", f_tri)])
+    mesh.write("deformed_dense.obj")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('dense_mesh', type=pathlib.Path)
@@ -127,55 +158,14 @@ def main():
     f_tet = np.array(mesh.cells[0].data)
     v_tet = np.array(mesh.points)
 
+    hdf5_path = f'{args.coarse_mesh.stem}-to-{args.dense_mesh.stem}.hdf5'
+
     if True:
         M = get_matrix(v_tri, v_tet, f_tet, quiet=False)
-        M_csc = csc_matrix(M)
-        print(M)
-
-        h5f = h5py.File(
-            f'{args.coarse_mesh.stem}-to-{args.dense_mesh.stem}.hdf5', 'w')
-        # h5f.create_dataset('bary_matrix', data=M)
-        # h5f.close()
-
-        # Saving as sparse matrix
-        g = h5f.create_group('Mcsc')
-        g.create_dataset('data', data=M_csc.data)
-        g.create_dataset('indptr', data=M_csc.indptr)
-        g.create_dataset('indices', data=M_csc.indices)
-        g.attrs['shape'] = M_csc.shape
-        h5f.close()
-
+        M_csc = scipy.sparse.csc_matrix(M)
+        save_weights(hdf5_path, M_csc)
     else:
-        h5f = h5py.File(
-            f'{args.coarse_mesh.stem}-to-{args.dense_mesh.stem}.hdf5', 'r')
-        M = h5f['bary_matrix']
-
-    # T = np.array([
-    #     [1, 1, 0],
-    #     [0, 1, 0],
-    #     [0, 0, 1],
-    # ])
-    # T = R.from_rotvec(np.pi * np.random.random(3)).as_matrix() @ T
-    #
-    # deformed_v_tet = v_tet @ T.T
-    # mesh = meshio.Mesh(deformed_v_tet, [("tetra", f_tet)])
-    # mesh.write("deformed_coarse.msh")
-    #
-    # deformed_v_tri = M @ deformed_v_tet
-    # mesh = meshio.Mesh(deformed_v_tri, [("triangle", f_tri)])
-    # mesh.write("deformed_dense.obj")
-
-    ############### To read from sparse h5py file ###################
-    f = h5py.File(
-        f'{args.coarse_mesh.stem}-to-{args.dense_mesh.stem}.hdf5', 'r')
-
-    g2 = f['Mcsc']
-
-    M1 = csc_matrix((g2['data'][:], g2['indices'][:],
-                     g2['indptr'][:]), g2.attrs['shape'])
-
-    M = np.array(M1.todense())
-    ##################################################################
+        M = load_weights(hdf5_path)
 
     # Checks error of mapping
     print("Error:", np.linalg.norm(M @ v_tet - v_tri, np.inf))
