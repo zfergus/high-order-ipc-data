@@ -98,11 +98,12 @@ def save_weights(path, W):
 
     if scipy.sparse.issparse(W):
         # Saving as sparse matrix
-        g = h5f.create_group('weights_csc')
-        g.create_dataset('data', data=W.data)
-        g.create_dataset('indptr', data=W.indptr)
-        g.create_dataset('indices', data=W.indices)
-        g.attrs['shape'] = W.shape
+        W_coo = W.tocoo()
+        g = h5f.create_group('weight_triplets')
+        g.create_dataset('values', data=W_coo.data)
+        g.create_dataset('rows', data=W_coo.row)
+        g.create_dataset('cols', data=W_coo.col)
+        g.attrs['shape'] = W_coo.shape
     else:
         h5f.create_dataset('weights', data=W)
 
@@ -111,10 +112,11 @@ def save_weights(path, W):
 
 def load_weights(path):
     with h5py.File(path, 'r') as h5f:
-        if "weights_csc" in h5f:
-            g = f['weights_csc']
-            return scipy.sparse.csc_matrix((g['data'][:], g['indices'][:],
-                                            g['indptr'][:]), g.attrs['shape'])
+        if "weight_triplets" in h5f:
+            g = f['weight_triplets']
+            return scipy.sparse.coo_matrix(
+                (g['values'][:], (g['rows'][:], g['cols'][:])), g.attrs['shape']
+            ).tocsc()
         else:
             assert("weights" in h5f)
             h5f.create_dataset('weights', data=W)

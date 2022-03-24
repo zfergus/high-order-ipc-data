@@ -153,12 +153,12 @@ def main():
     fem_mesh = concat_meshes(proxies)
 
     args.outdir.mkdir(exist_ok=True, parents=True)
-    pymesh.save_mesh(str(args.outdir / f"fem.obj"), fem_mesh)
-    pymesh.save_mesh(str(args.outdir / f"fem.msh"), fem_mesh)
-    pymesh.save_mesh(str(args.outdir / f"contact.obj"),
-                     pymesh.form_mesh(weights @ fem_mesh.vertices, mesh.faces))
-    save_weights(args.outdir / f"{args.mesh.stem}_proxy_weights.hdf5",
-                 scipy.sparse.csc_matrix(weights))
+    # pymesh.save_mesh(str(args.outdir / f"fem.obj"), fem_mesh)
+    pymesh.save_mesh(
+        str(args.outdir / f"{args.mesh.stem}_proxies.msh"), fem_mesh)
+    # pymesh.save_mesh(str(args.outdir / f"contact.obj"),
+    #                  pymesh.form_mesh(weights @ fem_mesh.vertices, mesh.faces))
+    save_weights(args.outdir / f"{args.mesh.stem}_proxy_weights.hdf5", weights)
 
 
 if __name__ == "__main__":
