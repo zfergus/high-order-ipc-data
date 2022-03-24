@@ -4,6 +4,7 @@ import h5py
 import argparse
 import pathlib
 import scipy
+import scipy.sparse
 
 from tqdm import tqdm
 
@@ -95,7 +96,7 @@ def compute_weights(P, V, F, quiet=True):
 def save_weights(path, W):
     h5f = h5py.File(path, 'w')
 
-    if scipy.sparse.issparse(my_matrix):
+    if scipy.sparse.issparse(W):
         # Saving as sparse matrix
         g = h5f.create_group('weights_csc')
         g.create_dataset('data', data=W.data)

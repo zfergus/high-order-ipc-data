@@ -1,0 +1,33 @@
+{
+    "#comment": "model is in mm, but we simulate in cgs",
+    "default_params": "defaults.json",
+    "problem_params": {
+        "rhs": [0, 0, 980.665]
+    },
+    "tend": 5,
+    "time_steps": 200,
+    "mu": 0,
+    "friction_iterations": 1,
+    "dhat": 0.1,
+    "meshes": [{
+        "mesh": "../meshes/kinematic-dress/dress_unfolded_noButtons_1_4th_proxies.msh",
+        "scale": 0.1,
+        "body_id": 1
+    }],
+    "body_params": [{
+        "id": 1,
+        "E": 2.7e10,
+        "nu": 0.4,
+        "rho": 1.15
+    }],
+    "#collision_mesh": {
+        "mesh": "../meshes/kinematic-dress/dress_unfolded_noButtons_1_4th.obj",
+        "linear_map": "../weights/kinematic-dress/dress_unfolded_noButtons_1_4th_proxy_weights.hdf5"
+    },
+    "obstacles": [{
+        "mesh": "../meshes/kinematic-dress/hooks.obj"
+    }],
+    "export": {
+        "time_sequence": "kinematic-dress.pvd"
+    }
+}

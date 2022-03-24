@@ -3,6 +3,8 @@ import pathlib
 from itertools import permutations
 
 import numpy
+import scipy.sparse
+
 from tqdm import tqdm
 from tqdm.contrib import tzip
 
@@ -131,22 +133,22 @@ def main():
 
     print("computing weights")
     # Compute weights
-    weights = numpy.zeros((mesh.vertices.shape[0], 8 * len(proxies)))
+    block_weights = []
     comps = pymesh.separate_mesh(mesh)
     prev_v = 0
     for i, (comp, proxy) in enumerate(tzip(comps, proxies)):
-        assert(proxy.vertices.shape[0] == 8)
-        local_weights = weights[
-            prev_v:prev_v + comp.vertices.shape[0], 8 * i:8 * (i + 1)]
-        local_weights[:, :] = (
+        block_weights.append(
             compute_weights(comp.vertices, proxy.vertices, proxy.voxels))
 
         error = numpy.linalg.norm(
-            local_weights @ proxy.vertices - comp.vertices, axis=1)
+            block_weights[-1] @ proxy.vertices - comp.vertices, axis=1)
         # print(i, error.max())
         assert(error.max() < 1e-10)
 
         prev_v += comp.vertices.shape[0]
+
+    weights = scipy.sparse.block_diag(block_weights)
+    weights.eliminate_zeros()
 
     fem_mesh = concat_meshes(proxies)
 
@@ -155,7 +157,8 @@ def main():
     pymesh.save_mesh(str(args.outdir / f"fem.msh"), fem_mesh)
     pymesh.save_mesh(str(args.outdir / f"contact.obj"),
                      pymesh.form_mesh(weights @ fem_mesh.vertices, mesh.faces))
-    save_weights(args.outdir / f"{args.mesh.stem}_proxy_weights.hdf5", weights)
+    save_weights(args.outdir / f"{args.mesh.stem}_proxy_weights.hdf5",
+                 scipy.sparse.csc_matrix(weights))
 
 
 if __name__ == "__main__":
