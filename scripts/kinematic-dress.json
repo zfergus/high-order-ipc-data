@@ -4,8 +4,11 @@
     "problem_params": {
         "rhs": [0, 0, 980.665]
     },
+    "solver_params": {
+        "broad_phase_method": "STQ"
+    },
     "tend": 5,
-    "time_steps": 200,
+    "time_steps": 1,
     "mu": 0,
     "friction_iterations": 1,
     "dhat": 0.1,
@@ -25,7 +28,8 @@
         "linear_map": "../weights/kinematic-dress/dress_unfolded_noButtons_1_4th_proxy_weights.hdf5"
     },
     "obstacles": [{
-        "mesh": "../meshes/kinematic-dress/hooks.obj"
+        "mesh": "../meshes/kinematic-dress/hooks.obj",
+        "scale": 0.1
     }],
     "export": {
         "time_sequence": "kinematic-dress.pvd"
