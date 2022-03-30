@@ -17,14 +17,14 @@
     }],
     "body_params": [{
         "id": 1,
-        "E": 2e11,
-        "#E": 1e5,
+        "#E": 2e11,
+        "E": 1e5,
         "nu": 0.4,
         "rho": 1000
-        }],
+    }],
     "collision_mesh": {
         "mesh": "../meshes/ball.obj",
-        "linear_map": "../weights/cube-symmetric-to-ball.hdf5"
+        "linear_map": "../weights/mean_value/cube-symmetric-to-ball.hdf5"
     },
     "obstacles": [{
         "mesh": "../meshes/plane.obj",

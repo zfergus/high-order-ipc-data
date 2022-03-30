@@ -6,91 +6,8 @@ import pathlib
 import scipy
 import scipy.sparse
 
-from tqdm import tqdm
-
-
-def compute_bary(p, v):
-    """
-    p: point of dense mesh; vector (3)
-    v: vertices of single tet; 2d matrix (4, 3)
-    returns the bary coords wrt v
-    """
-    v_ap = p - v[0]
-    v_bp = p - v[1]
-
-    v_ab = v[1] - v[0]
-    v_ac = v[2] - v[0]
-    v_ad = v[3] - v[0]
-
-    v_bc = v[2] - v[1]
-    v_bd = v[3] - v[1]
-
-    V_a = 1 / 6 * np.dot(v_bp, np.cross(v_bd, v_bc))
-    V_b = 1 / 6 * np.dot(v_ap, np.cross(v_ac, v_ad))
-    V_c = 1 / 6 * np.dot(v_ap, np.cross(v_ad, v_ab))
-    V_d = 1 / 6 * np.dot(v_ap, np.cross(v_ab, v_ac))
-    V = 1 / 6 * np.dot(v_ab, np.cross(v_ac, v_ad))
-
-    bary = np.zeros(4)
-    bary[0] = V_a / np.abs(V)
-    bary[1] = V_b / np.abs(V)
-    bary[2] = V_c / np.abs(V)
-    bary[3] = V_d / np.abs(V)
-
-    assert(abs(bary.sum() - 1) < 1e-10)
-
-    return bary
-
-
-def compute_weights(P, V, F, quiet=True):
-    """
-    p: points of dense mesh; 2d matrix (|V_dense|, 3)
-    V: vertices of tet mesh; 2d matrix (|V_tet|, 3)
-    F: faces of tet mesh; 2d matrix (|F|, 4)
-    returns mapping matrix
-    """
-    M = np.zeros((P.shape[0], V.shape[0]))
-    if quiet:
-        def tqdm(x): return x
-    for idx1, p in enumerate(tqdm(P)):
-        flag = 0
-        for idx2, f in enumerate(F):
-            tet_vert = []
-            for i in range(4):
-                tet_vert.append(V[f[i]])
-            tet_vert = np.array(tet_vert)
-
-            bary = compute_bary(p, tet_vert)
-            if np.all(bary >= 0):
-                flag = 1
-                for i in range(4):
-                    M[idx1][f[i]] = bary[i]
-                break
-
-        # If the vertex is not present inside any tet
-        # Finds the tet such that min number of bary coords are negative
-        # Possible ISSUE: Doesn't handle the case of tie i.e if for two tets equal number of bary coords are negative elements
-        tot_count = 0  # Sets the number of negative bary coords that we require
-        while(flag == 0):
-            tot_count += 1  # In first itration, tot_count = 1
-            for idx2, f in enumerate(F):
-                tet_vert = []
-                for i in range(4):
-                    tet_vert.append(V[f[i]])
-                tet_vert = np.array(tet_vert)
-
-                bary = compute_bary(p, tet_vert)
-                count = 0
-                for i in range(bary.shape[0]):  # counts negative terms
-                    if bary[i] < 0:
-                        count += 1
-                if count == tot_count:
-                    flag = 1
-                    for i in range(4):
-                        M[idx1][f[i]] = bary[i]
-                    break
-
-    return M
+from weights.barycentric import compute_barycentric_weights
+from weights.mean_value import compute_mean_value_weights
 
 
 def save_weights(path, W):
@@ -113,15 +30,12 @@ def save_weights(path, W):
 def load_weights(path):
     with h5py.File(path, 'r') as h5f:
         if "weight_triplets" in h5f:
-            g = f['weight_triplets']
+            g = h5f['weight_triplets']
             return scipy.sparse.coo_matrix(
                 (g['values'][:], (g['rows'][:], g['cols'][:])), g.attrs['shape']
             ).tocsc()
         else:
             assert("weights" in h5f)
-            h5f.create_dataset('weights', data=W)
-            h5f = h5py.File(
-                f'{args.coarse_mesh.stem}-to-{args.dense_mesh.stem}.hdf5', 'r')
             return h5f['weights']
 
 
@@ -148,6 +62,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('dense_mesh', type=pathlib.Path)
     parser.add_argument('coarse_mesh', type=pathlib.Path)
+    parser.add_argument('-m,--method', dest="method",
+                        default="MVC", choices=["BC", "MVC"])
+    parser.add_argument('--force-recompute',
+                        action=argparse.BooleanOptionalAction)
 
     args = parser.parse_args()
 
@@ -161,17 +79,39 @@ def main():
     f_tet = np.array(mesh.cells[0].data)
     v_tet = np.array(mesh.points)
 
-    hdf5_path = f'{args.coarse_mesh.stem}-to-{args.dense_mesh.stem}.hdf5'
+    out_dir = pathlib.Path(args.method)
+    out_dir.mkdir(exist_ok=True, parents=True)
+    hdf5_path = (out_dir /
+                 f'{args.coarse_mesh.stem}-to-{args.dense_mesh.stem}.hdf5')
 
-    if True:
-        M = get_matrix(v_tri, v_tet, f_tet, quiet=False)
-        M_csc = scipy.sparse.csc_matrix(M)
-        save_weights(hdf5_path, M_csc)
+    if args.force_recompute or not hdf5_path.exists():
+        if args.method == "MVC":
+            W = compute_mean_value_weights(v_tri, v_tet, f_tet, quiet=False)
+        elif args.method == "BC":
+            W = compute_barycentric_weights(v_tri, v_tet, f_tet, quiet=False)
+        W = scipy.sparse.csc_matrix(W)
+        save_weights(hdf5_path, W)
     else:
-        M = load_weights(hdf5_path)
+        W = scipy.sparse.csc_matrix(load_weights(hdf5_path))
 
     # Checks error of mapping
-    print("Error:", np.linalg.norm(M @ v_tet - v_tri, np.inf))
+    print("Error:", np.linalg.norm(W @ v_tet - v_tri, np.inf))
+
+    # test(v_tet, f_tet, f_tri, W)
+    # if scipy.sparse.issparse(W):
+    #     W = W.A
+    #
+    # mesh = meshio.read(args.dense_mesh)
+    # mesh.point_data = {
+    #     f"w{i:02d}": W[:, i].reshape(-1, 1) for i in range(W.shape[1])
+    # }
+    #
+    # V_fem = v_tet.copy()
+    # V_fem[0] *= 0.1
+    # mesh.point_data["displacement"] = np.array(
+    #     W @ V_fem - mesh.points, dtype=float)
+    #
+    # meshio.write(f"out_{args.method.lower()}.vtu", mesh)
 
 
 if __name__ == "__main__":
