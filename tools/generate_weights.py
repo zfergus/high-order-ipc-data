@@ -79,7 +79,11 @@ def main():
     f_tet = np.array(mesh.cells[0].data)
     v_tet = np.array(mesh.points)
 
-    out_dir = pathlib.Path(args.method)
+    root = pathlib.Path(__file__).parents[1]
+    if args.method == "MVC":
+        out_dir = pathlib.Path(root / "weights" / "mean_value")
+    elif args.method == "BC":
+        out_dir = pathlib.Path(root / "weights" / "barycentric")
     out_dir.mkdir(exist_ok=True, parents=True)
     hdf5_path = (out_dir /
                  f'{args.coarse_mesh.stem}-to-{args.dense_mesh.stem}.hdf5')
