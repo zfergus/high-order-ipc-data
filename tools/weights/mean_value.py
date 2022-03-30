@@ -33,13 +33,13 @@ def MorphPoint(vertices, values, point, faces, n_vertices, n_faces, dim=3, compl
     total_f = numpy.zeros(dim)
     total_w = 0.0
 
-    weights = numpy.zeros(n_vertices)
+    weights = numpy.zeros((n_vertices, 1))
     # weights = lil_matrix((n_vertices, 1))
 
     for i in range(n_vertices):
         d = numpy.linalg.norm(vertices[i] - point)
         if d < EPSILON:
-            weights[i] = 1
+            weights[i, 0] = 1
             # weights[(i, 0)] = 1
             return values[i], weights
 
@@ -77,13 +77,13 @@ def MorphPoint(vertices, values, point, faces, n_vertices, n_faces, dim=3, compl
         h = numpy.sum(theta) / 2.
 
         if numpy.pi - h < EPSILON_FACE:
-            weights = numpy.zeros(n_vertices)
+            weights = numpy.zeros((n_vertices, 1))
             # weights = lil_matrix((n_vertices, 1))
             for i in range(complex_dim):
                 ip1, im1 = get_imp1(i, complex_dim)
 
                 w[i] = numpy.sin(theta[i]) * d[ip1] * d[im1]
-                weights[faces[j][i]] = w[i]
+                weights[faces[j][i], 0] = w[i]
                 # weights[(faces[j][i], 0)] = w[i]
                 total_f += w[i] * val[i]
 
@@ -109,7 +109,7 @@ def MorphPoint(vertices, values, point, faces, n_vertices, n_faces, dim=3, compl
 
             w[i] = (theta[i] - c[ip1] * theta[im1] - c[im1] *
                     theta[ip1]) / (d[i] * numpy.sin(theta[ip1]) * s[im1])
-            weights[faces[j][i]] += w[i]
+            weights[faces[j][i], 0] += w[i]
             # weights[(faces[j][i], 0)] += w[i]
             total_f += w[i] * val[i]
             total_w += w[i]
