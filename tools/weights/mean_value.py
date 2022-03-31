@@ -1,18 +1,16 @@
 import numpy
 import scipy
 from scipy.sparse import lil_matrix, csc_matrix, coo_matrix
-
 import igl
-
 from .utils import quiet_tqdm
-
-from numba import jit
+from numba import jit, prange
+import csv
 
 EPSILON = 1e-10
 EPSILON_FACE = 1e-10
 
 
-@jit(nopython=True, parallel=False)
+@jit(nopython=True, fastmath=True)
 def get_imp1(i, complex_dim):
     ip1 = 0
     im1 = 0
@@ -28,7 +26,7 @@ def get_imp1(i, complex_dim):
     return ip1, im1
 
 
-@jit(nopython=True, parallel=False)
+@jit(nopython=True, fastmath=True)
 def MorphPoint(vertices, values, point, faces, n_vertices, n_faces, dim=3, complex_dim=3):
     total_f = numpy.zeros(dim)
     total_w = 0.0
@@ -36,12 +34,12 @@ def MorphPoint(vertices, values, point, faces, n_vertices, n_faces, dim=3, compl
     weights = numpy.zeros((n_vertices, 1))
     # weights = lil_matrix((n_vertices, 1))
 
-    for i in range(n_vertices):
+    for i in prange(n_vertices):
         d = numpy.linalg.norm(vertices[i] - point)
         if d < EPSILON:
             weights[i, 0] = 1
             # weights[(i, 0)] = 1
-            return values[i], weights
+            return weights
 
     vert = numpy.zeros((complex_dim, dim))
     val = numpy.zeros((complex_dim, dim))
@@ -53,10 +51,12 @@ def MorphPoint(vertices, values, point, faces, n_vertices, n_faces, dim=3, compl
     s = numpy.zeros(complex_dim)
     w = numpy.zeros(complex_dim)
 
-    for j in range(n_faces):
-        for k in range(complex_dim):
-            vert[k] = vertices[faces[j][k]]
-            val[k] = values[faces[j][k]]
+    for j in prange(n_faces):
+        vert = vertices[faces[j]]
+        val = vertices[faces[j]]
+        # for k in range(complex_dim):
+        #     vert[k] = vertices[faces[j][k]]
+        #     val[k] = values[faces[j][k]]
 
         for i in range(complex_dim):
             d[i] = numpy.linalg.norm(vert[i] - point)
@@ -85,10 +85,10 @@ def MorphPoint(vertices, values, point, faces, n_vertices, n_faces, dim=3, compl
                 w[i] = numpy.sin(theta[i]) * d[ip1] * d[im1]
                 weights[faces[j][i], 0] = w[i]
                 # weights[(faces[j][i], 0)] = w[i]
-                total_f += w[i] * val[i]
+                # total_f += w[i] * val[i]
 
-            total_f /= numpy.sum(w)
-            return total_f, weights
+            # total_f /= numpy.sum(w)
+            return weights
 
         flag = 0
         for i in range(complex_dim):
@@ -111,15 +111,14 @@ def MorphPoint(vertices, values, point, faces, n_vertices, n_faces, dim=3, compl
                     theta[ip1]) / (d[i] * numpy.sin(theta[ip1]) * s[im1])
             weights[faces[j][i], 0] += w[i]
             # weights[(faces[j][i], 0)] += w[i]
-            total_f += w[i] * val[i]
-            total_w += w[i]
+            # total_f += w[i] * val[i]
+            # total_w += w[i]
 
-    if total_w == 0:
-        print("Error")
-        return total_f, weights
+    # if total_w == 0:
+    #     print("Error")
+    #     return total_f, weights
 
-    return total_f / total_w, weights
-
+    return weights
 
 def compute_mean_value_weights(P, V, F, quiet=True):
     """
@@ -135,20 +134,30 @@ def compute_mean_value_weights(P, V, F, quiet=True):
     cols = numpy.array([])
     data = numpy.array([])
 
-    # TODO: use igl::remove_unreferenced to remove interior points in V
-    # NV : NV by dim list of mesh vertex positions
-    # NF : NF by ss list of simplices
-    # IM : V by 1 list of indices such that: NF = IM(F) and NT = IM(T) and V(find(IM<=size(NV,1)),:) = NV
-    # J  : RV by 1 list, such that RV = V(J,:)
-    # NV, NF, IM, J = igl.remove_unreferenced(V, surface)
+    # remove_unreferenced not really needed because 
+    # we iterate over faces and not vertices
+
+    # Using file to store the sparse matrix as
+    # to reduce the overhead on memory
+    f = open('sparse.csv', 'w')
+    writer = csv.writer(f)
 
     for i, p in enumerate(quiet_tqdm(P, quiet)):
-        # _, w = MorphPoint(NV, NV, p, NF, NV.shape[0], NF.shape[0])
-        _, w = MorphPoint(V, V, p, surface, V.shape[0], surface.shape[0])
-        # TODO: map from reduced to full vertices
+        w = MorphPoint(V, V, p, surface, V.shape[0], surface.shape[0])
+
         w = coo_matrix(w)
-        rows = numpy.append(rows, i * numpy.ones(w.row.shape[0]))
-        cols = numpy.append(cols, w.row)
-        data = numpy.append(data, w.data / numpy.sum(w.data))
+        sum = numpy.sum(w.data)
+        for j in range(w.row.shape[0]):
+            writer.writerow([i, w.row[j], w.data[j] / sum])
+
+    f.close()
+
+    # Reading the triplet csv to construct the sparse matrix
+    with open('sparse.csv') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        for row in csv_reader:
+            rows = numpy.append(rows, int(row[0]))
+            cols = numpy.append(cols, int(row[1]))
+            data = numpy.append(data, float(row[2]))
 
     return csc_matrix((data, (rows, cols)), shape=(P.shape[0], V.shape[0]))
