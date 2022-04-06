@@ -197,3 +197,4 @@ tools/output
 *__sf.obj
 *_.csv
 *__tracked_surface.stl
+sparse.csv

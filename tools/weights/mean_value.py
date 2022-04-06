@@ -1,10 +1,15 @@
+import os
+import csv
+
 import numpy
 import scipy
 from scipy.sparse import lil_matrix, csc_matrix, coo_matrix
-import igl
-from .utils import quiet_tqdm
 from numba import jit, prange
-import csv
+import pandas
+
+import igl
+
+from .utils import quiet_tqdm
 
 EPSILON = 1e-10
 EPSILON_FACE = 1e-10
@@ -120,6 +125,7 @@ def MorphPoint(vertices, values, point, faces, n_vertices, n_faces, dim=3, compl
 
     return weights
 
+
 def compute_mean_value_weights(P, V, F, quiet=True):
     """
     P: points of dense mesh; 2d matrix (|V_dense|, 3)
@@ -134,13 +140,14 @@ def compute_mean_value_weights(P, V, F, quiet=True):
     cols = numpy.array([])
     data = numpy.array([])
 
-    # remove_unreferenced not really needed because 
+    # remove_unreferenced not really needed because
     # we iterate over faces and not vertices
 
     # Using file to store the sparse matrix as
     # to reduce the overhead on memory
     f = open('sparse.csv', 'w')
     writer = csv.writer(f)
+    writer.writerow("row,col,data")
 
     for i, p in enumerate(quiet_tqdm(P, quiet)):
         w = MorphPoint(V, V, p, surface, V.shape[0], surface.shape[0])
@@ -153,11 +160,9 @@ def compute_mean_value_weights(P, V, F, quiet=True):
     f.close()
 
     # Reading the triplet csv to construct the sparse matrix
-    with open('sparse.csv') as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
-        for row in csv_reader:
-            rows = numpy.append(rows, int(row[0]))
-            cols = numpy.append(cols, int(row[1]))
-            data = numpy.append(data, float(row[2]))
+    df = pandas.read_csv('sparse.csv')
 
-    return csc_matrix((data, (rows, cols)), shape=(P.shape[0], V.shape[0]))
+    os.remove("sparse.csv")
+
+    return csc_matrix((df["data"], (df["row"], df["col"])),
+                      shape=(P.shape[0], V.shape[0]))

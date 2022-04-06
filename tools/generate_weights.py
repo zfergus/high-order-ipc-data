@@ -64,8 +64,9 @@ def main():
     parser.add_argument('coarse_mesh', type=pathlib.Path)
     parser.add_argument('-m,--method', dest="method",
                         default="MVC", choices=["BC", "MVC"])
-    parser.add_argument('--force-recompute',
-                        action=argparse.BooleanOptionalAction)
+    parser.add_argument('--force-recompute', default=False,
+                        # action=argparse.BooleanOptionalAction
+                        type=bool)
 
     args = parser.parse_args()
 
