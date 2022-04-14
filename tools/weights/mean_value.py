@@ -33,6 +33,9 @@ def get_imp1(i, complex_dim):
 
 @jit(nopython=True, fastmath=True)
 def MorphPoint(vertices, point, faces, n_vertices, n_faces, dim=3, complex_dim=3):
+    assert(n_faces > 0)
+    assert(n_vertices > 0)
+
     total_f = numpy.zeros(dim)
     total_w = 0.0
 
@@ -115,6 +118,7 @@ def compute_mean_value_weights(P, V, F, quiet=True):
     F: faces of tet mesh; 2d matrix (|F|, 4)
     returns mapping matrix
     """
+    assert(F.shape[1] == 4)
     surface = igl.boundary_facets(F)  # get surface
     # NV, NF, IM, _ = igl.remove_unreferenced(V, surface)  # Remove unreferenced
 
@@ -122,8 +126,8 @@ def compute_mean_value_weights(P, V, F, quiet=True):
 
     for i, p in enumerate(quiet_tqdm(P, quiet)):
         w = MorphPoint(V, p, surface, V.shape[0], surface.shape[0])
-        total_w = numpy.sum(w)
-
-        W.append(w/total_w)
+        total_w = w.sum()
+        # assert(total_w > 0)
+        W.append(w / total_w)
 
     return csc_matrix(W)

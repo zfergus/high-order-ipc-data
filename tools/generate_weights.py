@@ -72,11 +72,13 @@ def main():
 
     # Triangular mesh
     mesh = meshio.read(args.dense_mesh)
+    assert(mesh.cells[0].type == "triangle")
     f_tri = np.array(mesh.cells[0].data)
     v_tri = np.array(mesh.points)
 
     # Tetrahedral Mesh
     mesh = meshio.read(args.coarse_mesh)
+    assert(mesh.cells[0].type == "tetra")
     f_tet = np.array(mesh.cells[0].data)
     v_tet = np.array(mesh.points)
 
