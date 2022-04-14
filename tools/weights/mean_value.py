@@ -84,7 +84,7 @@ def MorphPoint(vertices, point, faces, n_vertices, n_faces, dim=3, complex_dim=3
             for i in range(complex_dim):
                 w[i] = numpy.sin(theta[i]) * d[IP1[i]] * d[IM1[i]]
                 weights[faces[j][i]] = w[i]
-                
+
             return weights
 
         flag = 0
