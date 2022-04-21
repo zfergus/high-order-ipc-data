@@ -201,3 +201,6 @@ sparse.csv
 weights/mean_value/armadillo_coarse-to-armadillo.hdf5
 weights/mean_value/armadillo-to-armadillo_verschoor.hdf5
 out_mvc.vtu
+fem_mesh.obj
+coll_mesh.obj
+phi.hdf5
