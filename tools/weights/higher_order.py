@@ -129,34 +129,53 @@ def get_local_elements(E, V_orig):
     return np.array(V), np.array(E_local)
 
 
-def get_phi_2d(num_nodes, n_vertex_nodes, E, boundary_to_full, order, div_per_edge):
+def get_phi_2d(num_nodes, n_vertex_nodes, E, E_boundary_to_E_full, order, div_per_edge):
     assert(div_per_edge > 2)
     alpha = np.linspace(0, 1, div_per_edge)
-    # alpha = alpha[1:-1]
+    alpha = alpha[1:-1]
 
     n_el = E.shape[0]
     num_boundary_vertices = len(set(E.flatten()))
-    # num_coll_nodes = num_boundary_vertices + n_el * (div_per_edge - 2)
-    num_coll_nodes = n_el * div_per_edge
+    num_coll_nodes = num_boundary_vertices + n_el * (div_per_edge - 2)
     n_edge_nodes = order - 1
 
     E_col = np.empty((n_el * (div_per_edge - 1), 2), dtype=int)
 
+    V_edge_to_V_collision = {}
+    for e in E:
+        for i in e:
+            if i not in V_edge_to_V_collision:
+                V_edge_to_V_collision[i] = len(V_edge_to_V_collision)
+    assert(len(V_edge_to_V_collision) == num_boundary_vertices)
+
     phi = np.zeros((num_coll_nodes, num_nodes))
+    for fem_i, coll_i in V_edge_to_V_collision.items():
+        phi[coll_i, fem_i] = 1
+
+    start_vi = num_boundary_vertices
+    delta_vi = alpha.size
+    start_ei = 0
+    delta_ei = (div_per_edge - 1)
     for ei, e in enumerate(E):
         v_indices = np.append(
-            e, np.array(range(n_edge_nodes)) + n_vertex_nodes + boundary_to_full[ei] * n_edge_nodes)
+            e, np.array(range(n_edge_nodes)) + n_vertex_nodes + E_boundary_to_E_full[ei] * n_edge_nodes)
+
         for i in range(order + 1):
             val = hat_phis(order)[i](alpha)
             ind = v_indices[i]
-            phi[ei * div_per_edge:(ei + 1) * div_per_edge, ind] = val
-        E_col[ei * (div_per_edge - 1):(ei + 1) * (div_per_edge - 1)] = [
-            [ei * div_per_edge + i,
-                (ei * div_per_edge + i + 1) % num_coll_nodes]
-            for i in range(div_per_edge - 1)
-        ]
+            phi[start_vi:(start_vi + delta_vi), ind] = val
 
-    return np.array(phi), E_col
+        E_col[start_ei] = [V_edge_to_V_collision[e[0]], start_vi]
+        start_ei += 1
+        for i in range(delta_ei - 2):
+            E_col[start_ei + i] = [start_vi + i, start_vi + i + 1]
+        start_ei += delta_ei - 2
+        E_col[start_ei] = [start_vi + delta_vi - 1, V_edge_to_V_collision[e[1]]]
+        start_ei += 1
+
+        start_vi += delta_vi
+
+    return phi, E_col
 
 
 def find(e, E):
