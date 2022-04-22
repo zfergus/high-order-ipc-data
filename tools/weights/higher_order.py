@@ -1,13 +1,10 @@
 import numpy as np
 import igl
 import meshio
-import matplotlib.pyplot as plt
 import h5py
 import argparse
 import pathlib
-import scipy
 import scipy.sparse
-import sys
 
 
 def save_weights(path, W):
@@ -109,26 +106,6 @@ def get_highorder_nodes(V, F, order):
     return np.array(V_new)
 
 
-def get_local_elements(E, V_orig):
-    V = []
-    d = {}
-    counter = 0
-    E_local = []
-    for i in range(E.shape[0]):
-        temp = []
-        for j in range(2):
-            if E[i, j] in d.keys():
-                temp.append(d[E[i, j]])
-            else:
-                temp.append(counter)
-                V.append(V_orig[E[i, j]])
-                d[E[i, j]] = counter
-                counter += 1
-        E_local.append(temp)
-
-    return np.array(V), np.array(E_local)
-
-
 def get_phi_2d(num_nodes, n_vertex_nodes, E, E_boundary_to_E_full, order, div_per_edge):
     assert(div_per_edge > 2)
     alpha = np.linspace(0, 1, div_per_edge)
@@ -204,11 +181,7 @@ def main():
 
     E_full = igl.edges(F)
     E_boundary = igl.boundary_facets(F)
-
     boundary_to_full = [find(e, E_full) for e in E_boundary]
-
-    # get vertices and according edge indices just for the boundary
-    # V, E_local = get_local_elements(E, V_orig)
 
     # insert higher order indices at end
     V = get_highorder_nodes(V, F, args.order)
@@ -236,9 +209,6 @@ def main():
 
     # test code to visualise
     write_obj("coll_mesh.obj", V_col, E_col)
-    # plt.scatter(V[:,0], V[:,1])
-    # plt.scatter(V_col[:,0], V_col[:,1])
-    # plt.show()
 
 
 if __name__ == '__main__':
