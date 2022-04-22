@@ -162,6 +162,28 @@ def find(e, E):
     raise Exception()
 
 
+def polyfem_ordering(num_vertices, F, order):
+    ordering = []
+    E = igl.edges(F)
+    processed_vertices = set()
+    processed_edges = set()
+    num_nodes_per_edge = 1 if order == 2 else 2
+    for fi, f in enumerate(F):
+        for v in f:
+            if v not in processed_vertices:
+                ordering.append(v)
+                processed_vertices.add(v)
+        for i in range(3):
+            e = find((f[i], f[(i + 1) % 3]), E)
+            if e not in processed_edges:
+                for j in range(num_nodes_per_edge):
+                    ordering.append(num_vertices + num_nodes_per_edge * e + j)
+                processed_edges.add(e)
+        if order == 3:
+            ordering.append(num_vertices + E.shape[0] + fi)
+    return ordering
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('mesh', type=pathlib.Path)
@@ -189,6 +211,14 @@ def main():
     # get phi matrix
     phi, E_col = get_phi_2d(V.shape[0], n_vertex_nodes, E_boundary,
                             boundary_to_full, args.order, args.div_per_edge)
+
+    ordering = polyfem_ordering(n_vertex_nodes, F, args.order)
+    assert(len(ordering) == phi.shape[1])
+    phi = phi[:, ordering]
+    V = V[ordering]
+    for i, e in enumerate(E_full):
+        for j, v in enumerate(e):
+            E_full[i, j] = ordering.index(v)
 
     # center = np.zeros(3)
     # radius = 0.5
