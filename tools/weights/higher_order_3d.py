@@ -227,8 +227,10 @@ def get_phi_3d(num_nodes, n_vertex_nodes, F, E, edge_to_edge_node, face_to_face_
             phi[f*alpha.shape[0]:(f+1)*alpha.shape[0], ind] = val
 
         if f > 0:
-            F_col = np.append(F_col, F_grid+ct, axis=0)
             ct += V_grid.shape[0]
+            F_col = np.append(F_col, F_grid+ct, axis=0)
+
+        print(F_col)
 
     return np.array(phi), F_col
 
@@ -273,13 +275,6 @@ def main():
 
     write_obj("fem_mesh.obj", V_fem, F=F_boundary)
     write_obj("coll_mesh.obj", V_col, F=F_col)
-
-    # # test code to visualise
-    # plt.scatter(V_col[:,0], V_col[:,1], label="collision nodes")
-    # plt.scatter(V[:s,0], V[:s,1], label="vertex nodes")
-    # plt.scatter(V[s:,0], V[s:,1], label="edge nodes")
-    # plt.legend()
-    # plt.show()
 
 if __name__ == '__main__':
     main()
