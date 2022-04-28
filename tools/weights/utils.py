@@ -35,7 +35,7 @@ def save_weights(path, W, edges=None, faces=None):
         h5f.create_dataset('weights', data=W)
 
     if edges is not None:
-        h5f.create_dataset("orderd_edges", data=edges)
+        h5f.create_dataset("ordered_edges", data=edges)
     if faces is not None:
         h5f.create_dataset("ordered_faces", data=faces)
 
