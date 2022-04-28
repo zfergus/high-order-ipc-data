@@ -102,7 +102,7 @@ def regular_2d_grid(n):
     return np.array(V), np.array(F)
 
 
-def build_phi_3D(num_vertices, num_edges, V, BF, BF2F, F2E, order, div_per_edge):
+def build_phi_3D(num_vertices, num_edges, V, BF_in, BF2F, F2E, order, div_per_edge):
     """Build Φ_3D"""
     V_grid, F_grid = regular_2d_grid(div_per_edge)
     alphas = V_grid[:, 0]
@@ -111,7 +111,7 @@ def build_phi_3D(num_vertices, num_edges, V, BF, BF2F, F2E, order, div_per_edge)
     num_nodes = V.shape[0]
     n_nodes_per_edge = order - 1
 
-    BV, BF, _, _ = igl.remove_unreferenced(V, BF)
+    BV, BF, _, J = igl.remove_unreferenced(V, BF_in)
     BE = igl.edges(BF)
     BF2BE = faces_to_edges(BF, BE)
     nBV = BV.shape[0]
@@ -120,14 +120,13 @@ def build_phi_3D(num_vertices, num_edges, V, BF, BF2F, F2E, order, div_per_edge)
 
     n_grid_boundary_vertices = 3 + 3 * (div_per_edge - 2)
     n_grid_interior_vertices = V_grid.shape[0] - n_grid_boundary_vertices
-    # num_coll_vertices = BF.shape[0] * V_grid.shape[0]
     num_coll_vertices = (
         nBV + (div_per_edge - 2) * nBE + nBF * n_grid_interior_vertices)
 
     # The order of Φ's rows will be: corners then edge interior then face interior
     phi = scipy.sparse.lil_matrix((num_coll_vertices, num_nodes))
 
-    for fi, f in enumerate(labeled_tqdm(BF, "Building Φ")):
+    for fi, f in enumerate(labeled_tqdm(BF_in, "Building Φ")):
         # Construct a list of nodes associated with face f
         nodes = f.tolist()
         # Edge nodes
@@ -149,7 +148,6 @@ def build_phi_3D(num_vertices, num_edges, V, BF, BF2F, F2E, order, div_per_edge)
         offset += delta * nBE
         delta = n_grid_interior_vertices
         rows.extend(offset + fi * delta + np.arange(delta))
-        # rows = np.arange(V_grid.shape[0]) + fi * V_grid.shape[0]
 
         # evaluate ϕᵢ on the face nodes
         for i, node_i in enumerate(nodes):
@@ -160,7 +158,7 @@ def build_phi_3D(num_vertices, num_edges, V, BF, BF2F, F2E, order, div_per_edge)
 
     # Stitch faces together
     F_col = []
-    for fi, f in enumerate(labeled_tqdm(BF, "Building F_coll")):
+    for fi, f in enumerate(labeled_tqdm(BF, "Building collision mesh")):
         v0, v1, v2 = BV[f]
         f_coll = F_grid.copy()
         for i, vi in np.ndenumerate(f_coll):
