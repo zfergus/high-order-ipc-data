@@ -4,7 +4,6 @@ import meshio
 import argparse
 import pathlib
 import scipy.sparse
-from tqdm import tqdm
 import itertools
 
 from utils import *
@@ -39,24 +38,6 @@ hat_phis = {
         lambda x, y: -27 * x * y * (x + y - 1),
     ]
 }
-
-
-def barycentric_coordinates(p, a, b, c):
-    """Compute barycentric coordinates (u, v) for point p with respect to triangle (a, b, c)"""
-    v0 = b - a
-    v1 = c - a
-    v2 = p - a
-    d00 = v0.dot(v0)
-    d01 = v0.dot(v1)
-    d11 = v1.dot(v1)
-    d20 = v2.dot(v0)
-    d21 = v2.dot(v1)
-    inv_denom = 1.0 / (d00 * d11 - d01 * d01)
-    v = (d11 * d20 - d01 * d21) * invDenom
-    w = (d00 * d21 - d01 * d20) * invDenom
-    u = 1.0 - v - w
-
-    return numpy.array([u, v])
 
 
 def regular_2d_grid(n):
@@ -222,7 +203,7 @@ def polyfem_ordering_3D(num_vertices, num_edges, T, order):
         f = tuple(f.tolist())
         face_to_id[f] = face_to_id[f[::-1]] = i
 
-    for tet in tqdm(T):
+    for tet in T:
         for vi in tet:
             if vi not in processed_vertices:
                 ordering.append(vi)
