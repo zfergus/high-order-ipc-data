@@ -16,7 +16,11 @@ def labeled_tqdm(data, label):
     return pbar
 
 
-def save_weights(path, W):
+def save_weights(path, W, edges=None, faces=None):
+    """
+    Save a weight matrix.
+    Optionally: save the edge and/or face matricies
+    """
     h5f = h5py.File(path, 'w')
 
     if scipy.sparse.issparse(W):
@@ -29,6 +33,11 @@ def save_weights(path, W):
         g.attrs['shape'] = W_coo.shape
     else:
         h5f.create_dataset('weights', data=W)
+
+    if edges is not None:
+        h5f.create_dataset("orderd_edges", data=edges)
+    if faces is not None:
+        h5f.create_dataset("ordered_faces", data=faces)
 
     h5f.close()
 

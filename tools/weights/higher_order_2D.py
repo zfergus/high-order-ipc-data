@@ -45,7 +45,7 @@ def build_phi_2D(num_nodes, num_vertices, E_boundary, E_boundary_to_E_full,
                 V_edge_to_V_collision[i] = len(V_edge_to_V_collision)
     assert(len(V_edge_to_V_collision) == num_boundary_vertices)
 
-    phi = np.zeros((num_coll_nodes, num_nodes))
+    phi = scipy.sparse.lil_matrix((num_coll_nodes, num_nodes))
     for fem_i, coll_i in V_edge_to_V_collision.items():
         phi[coll_i, fem_i] = 1
 
@@ -76,7 +76,7 @@ def build_phi_2D(num_nodes, num_vertices, E_boundary, E_boundary_to_E_full,
 
         start_vi += delta_vi
 
-    return phi, E_col
+    return phi.tocsc(), E_col
 
 
 def polyfem_ordering_2D(num_vertices, E, F, order):
@@ -129,13 +129,13 @@ def main():
     phi, E_col = build_phi_2D(V.shape[0], num_vertices, E_boundary,
                               E_boundary_to_E_full, args.order, args.div_per_edge)
 
-    ordering = polyfem_ordering_2D(num_vertices, E_full, F, args.order)
-    assert(len(ordering) == phi.shape[1])
-    phi = phi[:, ordering]
-    V = V[ordering]
-    for i, e in enumerate(E_full):
-        for j, v in enumerate(e):
-            E_full[i, j] = ordering.index(v)
+    # ordering = polyfem_ordering_2D(num_vertices, E_full, F, args.order)
+    # assert(len(ordering) == phi.shape[1])
+    # phi = phi[:, ordering]
+    # V = V[ordering]
+    # for i, e in enumerate(E_full):
+    #     for j, v in enumerate(e):
+    #         E_full[i, j] = ordering.index(v)
 
     # center = np.zeros(3)
     # radius = 0.5
@@ -148,7 +148,8 @@ def main():
     #         center_to_point /= np.linalg.norm(center_to_point)
     #         V[vi] = center + center_to_point * radius
 
-    save_weights("phi.hdf5", scipy.sparse.csc_matrix(phi))
+    save_weights(
+        "phi.hdf5", scipy.sparse.csc_matrix(phi), edges=E_full, faces=F)
     write_obj("fem_mesh.obj", V, E_full)
 
     # compute collision matrix

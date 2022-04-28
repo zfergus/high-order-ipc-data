@@ -5,6 +5,7 @@ import argparse
 import pathlib
 import scipy.sparse
 import itertools
+import json
 
 from utils import *
 
@@ -184,44 +185,6 @@ def tet_faces(tet):
     yield tet[[2, 0, 3]]
 
 
-def polyfem_ordering_3D(num_vertices, num_edges, T, order):
-
-    ordering = []
-    processed_vertices = set()
-    processed_edges = set()
-    processed_faces = set()
-    E = igl.edges(T)
-    F = faces(T)
-
-    edge_to_id = {}
-    for i, e in enumerate(E):
-        e = tuple(e.tolist())
-        edge_to_id[e] = edge_to_id[e[::-1]] = i
-    face_to_id = {}
-    for i, f in enumerate(F):
-        f = tuple(f.tolist())
-        face_to_id[f] = face_to_id[f[::-1]] = i
-
-    for tet in T:
-        for vi in tet:
-            if vi not in processed_vertices:
-                ordering.append(vi)
-                processed_vertices.add(vi)
-        for e in tet_edges(tet):
-            ei = edge_to_id[tuple(e.tolist())]
-            if ei not in processed_edges:
-                for j in range(order - 1):
-                    ordering.append(num_vertices + (order - 1) * ei + j)
-                processed_edges.add(ei)
-        if order == 3:
-            for f in tet_faces(tet):
-                fi = face_to_id[tuple(f.tolist())]
-                if fi not in processed_edges:
-                    ordering.append(num_vertices + num_edges + fi)
-                    processed_faces.add(fi)
-    return ordering
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('mesh', type=pathlib.Path)
@@ -271,7 +234,7 @@ def main():
 
     out_weight = "phi.hdf5"
     print(f"saving weights to {out_weight}")
-    save_weights(out_weight, phi)
+    save_weights(out_weight, phi, edges=E, faces=F)
 
     out_fem_mesh = "fem_mesh.obj"
     out_coll_mesh = "coll_mesh.obj"
