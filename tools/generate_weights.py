@@ -48,6 +48,7 @@ def test(v_tet, f_tet, f_tri, weights):
         [0, 0, 1],
     ])
     T = R.from_rotvec(np.pi * np.random.random(3)).as_matrix() @ T
+    T = np.eye(3)
 
     deformed_v_tet = v_tet @ T.T
     mesh = meshio.Mesh(deformed_v_tet, [("tetra", f_tet)])
@@ -60,8 +61,8 @@ def test(v_tet, f_tet, f_tri, weights):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('dense_mesh', type=pathlib.Path)
-    parser.add_argument('coarse_mesh', type=pathlib.Path)
+    parser.add_argument('contact_mesh', type=pathlib.Path)
+    parser.add_argument('fem_mesh', type=pathlib.Path)
     parser.add_argument('-m,--method', dest="method",
                         default="MVC", choices=["BC", "MVC"])
     parser.add_argument('--force-recompute', default=False,
@@ -71,13 +72,13 @@ def main():
     args = parser.parse_args()
 
     # Triangular mesh
-    mesh = meshio.read(args.dense_mesh)
+    mesh = meshio.read(args.contact_mesh)
     assert(mesh.cells[0].type == "triangle")
     f_tri = np.array(mesh.cells[0].data)
     v_tri = np.array(mesh.points)
 
     # Tetrahedral Mesh
-    mesh = meshio.read(args.coarse_mesh)
+    mesh = meshio.read(args.fem_mesh)
     assert(mesh.cells[0].type == "tetra")
     f_tet = np.array(mesh.cells[0].data)
     v_tet = np.array(mesh.points)
@@ -89,7 +90,7 @@ def main():
         out_dir = pathlib.Path(root / "weights" / "barycentric")
     out_dir.mkdir(exist_ok=True, parents=True)
     hdf5_path = (out_dir /
-                 f'{args.coarse_mesh.stem}-to-{args.dense_mesh.stem}.hdf5')
+                 f'{args.fem_mesh.stem}-to-{args.contact_mesh.stem}.hdf5')
 
     if args.force_recompute or not hdf5_path.exists():
         if args.method == "MVC":
@@ -108,7 +109,7 @@ def main():
     # if scipy.sparse.issparse(W):
     #     W = W.A
     #
-    # mesh = meshio.read(args.dense_mesh)
+    # mesh = meshio.read(args.contact_mesh)
     # mesh.point_data = {
     #     f"w{i:02d}": W[:, i].reshape(-1, 1) for i in range(W.shape[1])
     # }
