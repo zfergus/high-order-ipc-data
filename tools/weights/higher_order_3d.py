@@ -1,238 +1,248 @@
-from time import ctime
 import numpy as np
 import igl
 import meshio
-import matplotlib.pyplot as plt
-import h5py
 import argparse
 import pathlib
+import scipy.sparse
+from tqdm import tqdm
 import itertools
-import scipy
-from numba import njit, prange
 
-def save_weights(path, W):
-    h5f = h5py.File(path, 'w')
+from utils import *
 
-    if scipy.sparse.issparse(W):
-        # Saving as sparse matrix
-        W_coo = W.tocoo()
-        g = h5f.create_group('weight_triplets')
-        g.create_dataset('values', data=W_coo.data)
-        g.create_dataset('rows', data=W_coo.row)
-        g.create_dataset('cols', data=W_coo.col)
-        g.attrs['shape'] = W_coo.shape
-    else:
-        h5f.create_dataset('weights', data=W)
 
-    h5f.close()
+hat_phis = {
+    1: [
+        lambda x, y: -x - y + 1,
+        lambda x, y: x,
+        lambda x, y: y
+    ],
+    2: [
+        lambda x, y: (x + y - 1) * (2 * x + 2 * y - 1),
+        lambda x, y: x * (2 * x - 1),
+        lambda x, y: y * (2 * y - 1),
+        lambda x, y: -4 * x * (x + y - 1),
+        lambda x, y: 4 * x * y,
+        lambda x, y: -4 * y * (x + y - 1),
+    ],
+    3: [
+        lambda x, y: -27.0 / 2.0 * x**2 * y + 9 * x**2 - 27.0 / 2.0 * y**2 * x + 9 * y**2 -
+        9.0 / 2.0 * x**3 + 18 * x * y - 11.0 / 2.0 *
+        x - 9.0 / 2.0 * y**3 - 11.0 / 2.0 * y + 1,
+        lambda x, y: (1.0 / 2.0) * x * (9 * x**2 - 9 * x + 2),
+        lambda x, y: (1.0 / 2.0) * y * (9 * y**2 - 9 * y + 2),
+        lambda x, y: (9.0 / 2.0) * x * (x + y - 1) * (3 * x + 3 * y - 2),
+        lambda x, y: -9.0 / 2.0 * x * (3 * x**2 + 3 * x * y - 4 * x - y + 1),
+        lambda x, y: (9.0 / 2.0) * x * y * (3 * x - 1),
+        lambda x, y: (9.0 / 2.0) * x * y * (3 * y - 1),
+        lambda x, y: -9.0 / 2.0 * y * (3 * x * y - x + 3 * y**2 - 4 * y + 1),
+        lambda x, y: (9.0 / 2.0) * y * (x + y - 1) * (3 * x + 3 * y - 2),
+        lambda x, y: -27 * x * y * (x + y - 1),
+    ]
+}
 
-def write_obj(filename, V, E=None, F=None):
-    with open(filename, 'w') as f:
-        for v in V:
-            f.write("v {:.16f} {:.16f} {:.16f}\n".format(*v))
-        if E is not None:
-            for e in E:
-                f.write("l {:d} {:d}\n".format(*(e + 1)))
-        if F is not None:
-            for face in F:
-                f.write("f {:d} {:d} {:d}\n".format(*(face + 1)))
 
-def hat_phi_1_0(x, y):
-    return -x-y+1
-def hat_phi_1_1(x, y):
-    return x
-def hat_phi_1_2(x, y):
-    return y
+def barycentric_coordinates(p, a, b, c):
+    """Compute barycentric coordinates (u, v) for point p with respect to triangle (a, b, c)"""
+    v0 = b - a
+    v1 = c - a
+    v2 = p - a
+    d00 = v0.dot(v0)
+    d01 = v0.dot(v1)
+    d11 = v1.dot(v1)
+    d20 = v2.dot(v0)
+    d21 = v2.dot(v1)
+    inv_denom = 1.0 / (d00 * d11 - d01 * d01)
+    v = (d11 * d20 - d01 * d21) * invDenom
+    w = (d00 * d21 - d01 * d20) * invDenom
+    u = 1.0 - v - w
 
-def hat_phi_2_0(x, y):
-    return (x + y - 1)*(2*x + 2*y - 1)
-def hat_phi_2_1(x, y):
-    return x*(2*x - 1)
-def hat_phi_2_2(x, y):
-    return y*(2*y - 1)
-def hat_phi_2_3(x, y):
-    return -4*x*(x + y - 1)
-def hat_phi_2_4(x, y):
-    return 4*x*y
-def hat_phi_2_5(x, y):
-    return -4*y*(x + y - 1)
+    return numpy.array([u, v])
 
-def hat_phi_3_0(x, y):
-    return -27.0/2.0*x**2*y + 9*x**2 - 27.0/2.0*y**2*x + 9*y**2 - 9.0/2.0*x**3 + 18*x*y - 11.0/2.0*x - 9.0/2.0*y**3 - 11.0/2.0*y + 1
-def hat_phi_3_1(x, y):
-    return (1.0/2.0)*x*(9*x**2 - 9*x + 2)
-def hat_phi_3_2(x, y):
-    return (1.0/2.0)*y*(9*y**2 - 9*y + 2)
-def hat_phi_3_3(x, y):
-    return (9.0/2.0)*x*(x + y - 1)*(3*x + 3*y - 2)
-def hat_phi_3_4(x, y):
-    return -9.0/2.0*x*(3*x**2 + 3*x*y - 4*x - y + 1)
-def hat_phi_3_5(x, y):
-    return (9.0/2.0)*x*y*(3*x - 1)
-def hat_phi_3_6(x, y):
-    return (9.0/2.0)*x*y*(3*y - 1)
-def hat_phi_3_7(x, y):
-    return -9.0/2.0*y*(3*x*y - x + 3*y**2 - 4*y + 1)
-def hat_phi_3_8(x, y):
-    return (9.0/2.0)*y*(x + y - 1)*(3*x + 3*y - 2)
-def hat_phi_3_9(x, y):
-    return -27*x*y*(x + y - 1)
-
-def hat_phis(order):
-    if order == 1:
-        return [hat_phi_1_0, hat_phi_1_1, hat_phi_1_2]
-    elif order == 2:
-        return [hat_phi_2_0, hat_phi_2_1, hat_phi_2_2, hat_phi_2_3, hat_phi_2_4, hat_phi_2_5]
-    elif order == 3:
-        return [hat_phi_3_0, hat_phi_3_1, hat_phi_3_2, hat_phi_3_3, hat_phi_3_4, hat_phi_3_5, hat_phi_3_6, hat_phi_3_7, hat_phi_3_8, hat_phi_3_9]
-
-@njit
-def findE(e, E):
-    for i in prange(E.shape[0]):
-    # for i, ei in enumerate(E):
-        if (e == E[i]).all() or (e == E[i][::-1]).all():
-            return i
-    raise Exception()
-
-def get_highorder_nodes(V, F, E, order):
-    V_new = V.tolist()
-
-    counter = len(V_new)
-    edge_to_edge_node = {}
-    face_to_face_node = {}
-    if order == 2:
-        for i in range(F.shape[0]):
-            v1 = V[F[i][0]]
-            v2 = V[F[i][1]]
-            v3 = V[F[i][2]]
-
-            e1 = findE(np.array([F[i][0], F[i][1]]), E)
-            e2 = findE(np.array([F[i][1], F[i][2]]), E)
-            e3 = findE(np.array([F[i][0], F[i][2]]), E)
-
-            if e1 not in edge_to_edge_node.keys():
-                V_new.append((v1+v2)/2)
-                edge_to_edge_node[e1] = counter
-                counter += 1
-
-            if e2 not in edge_to_edge_node.keys():
-                V_new.append((v2+v3)/2)
-                edge_to_edge_node[e2] = counter
-                counter += 1
-
-            if e3 not in edge_to_edge_node.keys():
-                V_new.append((v1+v3)/2)
-                edge_to_edge_node[e3] = counter
-                counter += 1
-
-    elif order == 3:
-        for i in range(F.shape[0]):
-            v1 = V[F[i][0]]
-            v2 = V[F[i][1]]
-            v3 = V[F[i][2]]
-
-            e1 = findE(np.array([F[i][0], F[i][1]]), E)
-            e2 = findE(np.array([F[i][1], F[i][2]]), E)
-            e3 = findE(np.array([F[i][0], F[i][2]]), E)
-
-            if e1 not in edge_to_edge_node.keys():
-                V_new.append(v1 + (v2-v1)/3)
-                V_new.append(v1 + 2*(v2-v1)/3)
-                edge_to_edge_node[e1] = counter
-                counter += 2
-
-            if e2 not in edge_to_edge_node.keys():
-                V_new.append(v2 + (v3-v2)/3)
-                V_new.append(v2 + 2*(v3-v2)/3)
-                edge_to_edge_node[e2] = counter
-                counter += 2
-
-            if e3 not in edge_to_edge_node.keys():
-                V_new.append(v3 + (v1-v3)/3)
-                V_new.append(v3 + 2*(v1-v3)/3)
-                edge_to_edge_node[e3] = counter
-                counter += 2
-
-            V_new.append((v1+v2+v3)/3)
-            face_to_face_node[i] = counter
-            counter += 1
-            
-    return np.array(V_new), edge_to_edge_node, face_to_face_node
-
-def num_ho_nodes(order):
-    if order == 1:
-        return 3
-    elif order == 2:
-        return 6
-    elif order == 3:
-        return 10
 
 def regular_2d_grid(n):
+    delta = 1 / (n - 1)
+    # map from (i, j) coordinates to vertex id
+    ij2v = np.full((n, n), -1)
     V = []
-    F = []
-    delta = 1. / (n - 1.)
-    map = -1*np.ones(n*n, dtype=int)
 
-    index = 0
-    for i in range(n):
-        for j in range(n):
-            if i+j >= n:
-                continue
+    # Corner Vertices
+    V.extend([[0, 0], [1, 0], [0, 1]])
+    ij2v[0, 0] = 0
+    ij2v[-1, 0] = 1
+    ij2v[0, -1] = 2
 
-            map[i + j * n] = index
+    # Edge vertices
+    # [0, 0] -> [1, 0]
+    ij2v[1:-1, 0] = np.arange(n - 2) + 3
+    V.extend([[x, 0] for x in np.linspace(0, 1, n)[1:-1]])
+    # [1, 0] -> [0, 1]
+    ij2v[np.arange(n - 2, 0, -1), np.arange(1, n - 1)] = (
+        np.arange(n - 2) + (3 + n - 2))
+    V.extend([[1 - x, x] for x in np.linspace(0, 1, n)[1:-1]])
+    # [0, 1] -> [0, 0]
+    ij2v[0, -2:0:-1] = np.arange(n - 2) + (3 + 2 * (n - 2))
+    V.extend([[0, 1 - y] for y in np.linspace(0, 1, n)[1:-1]])
+
+    # Interior vertices
+    for j in range(1, n - 1):
+        for i in range(1, n - 1):
+            if i + j >= n - 1:
+                break
+            ij2v[i, j] = len(V)
             V.append([i * delta, j * delta])
-            index += 1
 
-    for i in range(n-1):
-        for j in range(n-1):
-            tmp = np.array([map[i + j * n], map[i + 1 + j * n], map[i + (j + 1) * n]], dtype=int)
-            if np.all(tmp >= 0):
-                F.append(tmp)
+    # Create triangulated faces
+    F = []
+    for i, j in itertools.product(range(n - 1), range(n - 1)):
+        for f in [ij2v[[i, i + 1, i], [j, j, j + 1]],
+                  ij2v[[i + 1, i + 1, i], [j, j + 1, j + 1]]]:
+            if (f >= 0).all():
+                F.append(f)
 
-            tmp = np.array([map[i + 1 + j * n], map[i + 1 + (j + 1) * n], map[i + (j + 1) * n]], dtype=int)
-            if np.all(tmp >= 0):
-                F.append(tmp)
-	
     return np.array(V), np.array(F)
 
-def get_phi_3d(num_nodes, n_vertex_nodes, F, E, edge_to_edge_node, face_to_face_node, order, div_per_edge):
-    assert(div_per_edge > 2)
 
+def build_phi_3D(num_vertices, num_edges, V, BF, BF2F, F2E, order, div_per_edge):
+    """Build Φ_3D"""
     V_grid, F_grid = regular_2d_grid(div_per_edge)
+    alphas = V_grid[:, 0]
+    betas = V_grid[:, 1]
 
-    alpha = V_grid[:, 0]
-    beta =  V_grid[:, 1]
+    num_nodes = V.shape[0]
+    n_nodes_per_edge = order - 1
 
-    num_ho = num_ho_nodes(order)
-    n_el = F.shape[0]
+    BV, BF, _, _ = igl.remove_unreferenced(V, BF)
+    BE = igl.edges(BF)
+    BF2BE = faces_to_edges(BF, BE)
+    nBV = BV.shape[0]
+    nBE = BE.shape[0]
+    nBF = BF.shape[0]
 
-    phi = np.zeros(((alpha.shape[0])*n_el, num_nodes))
+    n_grid_boundary_vertices = 3 + 3 * (div_per_edge - 2)
+    n_grid_interior_vertices = V_grid.shape[0] - n_grid_boundary_vertices
+    # num_coll_vertices = BF.shape[0] * V_grid.shape[0]
+    num_coll_vertices = (
+        nBV + (div_per_edge - 2) * nBE + nBF * n_grid_interior_vertices)
 
-    ct = 0
-    F_col = F_grid
-    for f in range(n_el):
-        e1 = findE(np.array([F[f][0], F[f][1]]), E)
-        e2 = findE(np.array([F[f][1], F[f][2]]), E)
-        e3 = findE(np.array([F[f][0], F[f][2]]), E)
-        if order == 2:
-            v_indices = [F[f][0], F[f][1], F[f][2]] + [edge_to_edge_node[e1], edge_to_edge_node[e2], edge_to_edge_node[e3]]
+    # The order of Φ's rows will be: corners then edge interior then face interior
+    phi = scipy.sparse.lil_matrix((num_coll_vertices, num_nodes))
 
-        elif order == 3:
-            v_indices = [F[f][0], F[f][1], F[f][2]] + [edge_to_edge_node[e1], edge_to_edge_node[e1]+1, edge_to_edge_node[e2], edge_to_edge_node[e2]+1, edge_to_edge_node[e3], edge_to_edge_node[e3]+1, face_to_face_node[f]]
-        
-        for i in range(num_ho):
-            val = hat_phis(order)[i](alpha, beta)
-            ind = v_indices[i]
+    for fi, f in enumerate(labeled_tqdm(BF, "Building Φ")):
+        # Construct a list of nodes associated with face f
+        nodes = f.tolist()
+        # Edge nodes
+        offset = num_vertices
+        delta = n_nodes_per_edge
+        for ei in F2E[BF2F[fi]]:
+            nodes.extend(offset + ei * delta + np.arange(delta))
+        # Face nodes
+        if order == 3:
+            offset += delta * num_edges
+            nodes.append(offset + BF2F[fi])
 
-            phi[f*alpha.shape[0]:(f+1)*alpha.shape[0], ind] = val
+        # Map from local collision vertices to global
+        rows = BF[fi].tolist()
+        offset = nBV
+        delta = div_per_edge - 2
+        for ei in BF2BE[fi]:
+            rows.extend(offset + ei * delta + np.arange(delta))
+        offset += delta * nBE
+        delta = n_grid_interior_vertices
+        rows.extend(offset + fi * delta + np.arange(delta))
+        # rows = np.arange(V_grid.shape[0]) + fi * V_grid.shape[0]
 
-        if f > 0:
-            ct += V_grid.shape[0]
-            F_col = np.append(F_col, F_grid+ct, axis=0)
+        # evaluate ϕᵢ on the face nodes
+        for i, node_i in enumerate(nodes):
+            phi[rows, node_i] = hat_phis[order][i](alphas, betas)
 
-        print(F_col)
+    phi = phi.tocsc()
+    V_col = phi @ V
 
-    return np.array(phi), F_col
+    # Stitch faces together
+    F_col = []
+    for fi, f in enumerate(labeled_tqdm(BF, "Building F_coll")):
+        v0, v1, v2 = BV[f]
+        f_coll = F_grid.copy()
+        for i, vi in np.ndenumerate(f_coll):
+            if vi < 3:
+                f_coll[i] = f[vi]
+            elif vi < n_grid_boundary_vertices:
+                offset = nBV
+                delta = div_per_edge - 2
+                local_ei = (vi - 3) // (div_per_edge - 2)
+                ei = BF2BE[fi, local_ei]
+                # ej = (vi - 3) % delta
+
+                point = alphas[vi] * (v1 - v0) + betas[vi] * (v2 - v0) + v0
+                ej = np.linalg.norm(
+                    V_col[offset + ei * delta + np.arange(delta)] - point,
+                    axis=1).argmin()
+
+                f_coll[i] = offset + ei * delta + ej
+            else:
+                offset = nBV + nBE * (div_per_edge - 2)
+                delta = n_grid_interior_vertices
+                f_coll[i] = (
+                    offset + fi * delta + (vi - n_grid_boundary_vertices))
+        F_col.append(f_coll)
+    F_col = np.vstack(F_col)
+
+    return phi, F_col
+
+
+def tet_edges(tet):
+    yield tet[[0, 1]]
+    yield tet[[1, 2]]
+    yield tet[[2, 0]]
+    yield tet[[0, 3]]
+    yield tet[[1, 3]]
+    yield tet[[2, 3]]
+
+
+def tet_faces(tet):
+    yield tet[[0, 1, 2]]
+    yield tet[[0, 1, 3]]
+    yield tet[[1, 2, 3]]
+    yield tet[[2, 0, 3]]
+
+
+def polyfem_ordering_3D(num_vertices, num_edges, T, order):
+
+    ordering = []
+    processed_vertices = set()
+    processed_edges = set()
+    processed_faces = set()
+    E = igl.edges(T)
+    F = faces(T)
+
+    edge_to_id = {}
+    for i, e in enumerate(E):
+        e = tuple(e.tolist())
+        edge_to_id[e] = edge_to_id[e[::-1]] = i
+    face_to_id = {}
+    for i, f in enumerate(F):
+        f = tuple(f.tolist())
+        face_to_id[f] = face_to_id[f[::-1]] = i
+
+    for tet in tqdm(T):
+        for vi in tet:
+            if vi not in processed_vertices:
+                ordering.append(vi)
+                processed_vertices.add(vi)
+        for e in tet_edges(tet):
+            ei = edge_to_id[tuple(e.tolist())]
+            if ei not in processed_edges:
+                for j in range(order - 1):
+                    ordering.append(num_vertices + (order - 1) * ei + j)
+                processed_edges.add(ei)
+        if order == 3:
+            for f in tet_faces(tet):
+                fi = face_to_id[tuple(f.tolist())]
+                if fi not in processed_edges:
+                    ordering.append(num_vertices + num_edges + fi)
+                    processed_faces.add(fi)
+    return ordering
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -249,32 +259,49 @@ def main():
     assert(mesh.cells[0].type == "tetra")
     T = np.array(mesh.cells[0].data)
     V = np.array(mesh.points)
-    n_vertex_nodes = V.shape[0]
+    num_vertices = V.shape[0]
 
     order = int(args.order)
     div_per_edge = int(args.div_per_edge)
 
-    F_boundary_global = igl.boundary_facets(T)
-
-    # get vertices and according face indices just for the boundary
-    V_boundary, F_boundary, _, _ = igl.remove_unreferenced(V, F_boundary_global)
-
-    F_boundary_edges = igl.edges(F_boundary)
+    F = faces(T)
+    F = F[:, ::-1]  # Flip normals
+    E = igl.edges(F)
+    F2E = faces_to_edges(F, E)
+    F_boundary = igl.boundary_facets(T)
+    F_boundary = F_boundary[:, ::-1]  # Flip normals
+    F_boundary_to_F_full = boundary_to_full(F_boundary, F)
 
     # insert higher order indices at end
-    V_fem, edge_to_edge_node, face_to_face_node = get_highorder_nodes(V_boundary, F_boundary, F_boundary_edges, order)
+    V_fem = attach_higher_order_nodes(V, E, F, order)
 
     # get phi matrix
-    phi, F_col = get_phi_3d(V_fem.shape[0], n_vertex_nodes, F_boundary, F_boundary_edges, edge_to_edge_node, face_to_face_node, order, div_per_edge)
-    phi, _, _, F_col = igl.remove_duplicate_vertices(phi, F_col, 1e-7) # Removing duplicate rows (kind of hacky)
+    phi, F_col = build_phi_3D(
+        num_vertices, E.shape[0], V_fem, F_boundary, F_boundary_to_F_full, F2E, order, div_per_edge)
 
-    save_weights("phi.hdf5", phi)
-
-    # compute collision matrix
+    # compute collision vertices
+    phi = scipy.sparse.csc_matrix(phi)
     V_col = phi @ V_fem
 
-    write_obj("fem_mesh.obj", V_fem, F=F_boundary)
-    write_obj("coll_mesh.obj", V_col, F=F_col)
+    # Removing duplicate rows (kind of hacky)
+    print("Checking for duplicate vertices... ", end="")
+    n_vertices_before = V_col.shape[0]
+    _V_col, _, _, _F_col = igl.remove_duplicate_vertices(V_col, F_col, 1e-7)
+    print(f"{n_vertices_before - _V_col.shape[0]} duplicate vertices found")
+
+    # ordering = polyfem_ordering_3D(V_fem.shape[0], E.shape[0], T, order)
+
+    out_weight = "phi.hdf5"
+    print(f"saving weights to {out_weight}")
+    save_weights(out_weight, phi)
+
+    out_fem_mesh = "fem_mesh.obj"
+    out_coll_mesh = "coll_mesh.obj"
+    print(f"saving FEM mesh to {out_fem_mesh}")
+    write_obj(out_fem_mesh, V_fem, F=F_boundary)
+    print(f"saving collision mesh to {out_coll_mesh}")
+    write_obj(out_coll_mesh, V_col, F=F_col)
+
 
 if __name__ == '__main__':
     main()

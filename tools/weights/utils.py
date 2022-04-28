@@ -10,6 +10,12 @@ def quiet_tqdm(x, quiet):
     return x if quiet else tqdm(x)
 
 
+def labeled_tqdm(data, label):
+    pbar = tqdm(data)
+    pbar.set_description(label)
+    return pbar
+
+
 def save_weights(path, W):
     h5f = h5py.File(path, 'w')
 

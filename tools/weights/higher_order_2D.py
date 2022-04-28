@@ -6,13 +6,7 @@ import pathlib
 import scipy.sparse
 import itertools
 
-from utils import (
-    save_weights,
-    write_obj,
-    boundary_to_full,
-    attach_higher_order_nodes,
-    faces_to_edges
-)
+from utils import *
 
 
 hat_phis = {
@@ -31,8 +25,8 @@ hat_phis = {
 }
 
 
-def get_phi_2d(num_nodes, num_vertices, E_boundary, E_boundary_to_E_full,
-               order, div_per_edge):
+def build_phi_2D(num_nodes, num_vertices, E_boundary, E_boundary_to_E_full,
+                 order, div_per_edge):
     assert(div_per_edge > 2)
     alpha = np.linspace(0, 1, div_per_edge)
     alpha = alpha[1:-1]
@@ -131,9 +125,9 @@ def main():
     # insert higher order indices at end
     V = attach_higher_order_nodes(V, E_full, F, args.order)
 
-    # get phi matrix
-    phi, E_col = get_phi_2d(V.shape[0], num_vertices, E_boundary,
-                            E_boundary_to_E_full, args.order, args.div_per_edge)
+    # get Φ matrix
+    phi, E_col = build_phi_2D(V.shape[0], num_vertices, E_boundary,
+                              E_boundary_to_E_full, args.order, args.div_per_edge)
 
     ordering = polyfem_ordering_2D(num_vertices, E_full, F, args.order)
     assert(len(ordering) == phi.shape[1])
