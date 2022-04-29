@@ -33,8 +33,8 @@ hat_phis = {
         lambda x, y: -9.0 / 2.0 * x * (3 * x**2 + 3 * x * y - 4 * x - y + 1),
         lambda x, y: (9.0 / 2.0) * x * y * (3 * x - 1),
         lambda x, y: (9.0 / 2.0) * x * y * (3 * y - 1),
-        lambda x, y: -9.0 / 2.0 * y * (3 * x * y - x + 3 * y**2 - 4 * y + 1),
         lambda x, y: (9.0 / 2.0) * y * (x + y - 1) * (3 * x + 3 * y - 2),
+        lambda x, y: -9.0 / 2.0 * y * (3 * x * y - x + 3 * y**2 - 4 * y + 1),
         lambda x, y: -27 * x * y * (x + y - 1),
     ]
 }
@@ -205,12 +205,12 @@ def main():
     order = int(args.order)
     div_per_edge = int(args.div_per_edge)
 
-    F = faces(T)
-    F = F[:, ::-1]  # Flip normals
+    F = np.sort(faces(T))
+    # F = F[:, ::-1]  # Flip normals
     E = igl.edges(F)
     F2E = faces_to_edges(F, E)
-    F_boundary = igl.boundary_facets(T)
-    F_boundary = F_boundary[:, ::-1]  # Flip normals
+    F_boundary = np.sort(igl.boundary_facets(T))
+    # F_boundary = F_boundary[:, ::-1]  # Flip normals
     F_boundary_to_F_full = boundary_to_full(F_boundary, F)
 
     # insert higher order indices at end
