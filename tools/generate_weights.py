@@ -48,11 +48,11 @@ def test(v_tet, f_tet, f_tri, weights):
         [0, 0, 1],
     ])
     T = R.from_rotvec(np.pi * np.random.random(3)).as_matrix() @ T
-    T = np.eye(3)
+    # T = np.eye(3)
 
     deformed_v_tet = v_tet @ T.T
     mesh = meshio.Mesh(deformed_v_tet, [("tetra", f_tet)])
-    mesh.write("deformed_coarse.msh")
+    mesh.write("deformed_coarse.msh", file_format="gmsh")
 
     deformed_v_tri = weights @ deformed_v_tet
     mesh = meshio.Mesh(deformed_v_tri, [("triangle", f_tri)])
