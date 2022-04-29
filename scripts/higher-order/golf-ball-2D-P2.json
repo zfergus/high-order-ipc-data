@@ -17,6 +17,7 @@
     "dhat": 0.0000692820323,
     "meshes": [{
         "mesh": "../../meshes/2D/circle36.obj",
+        "#mesh": "../../meshes/2D/triangle_ref1.obj",
         "scale": 0.04,
         "body_id": 1
     }],
@@ -28,7 +29,9 @@
     }],
     "collision_mesh": {
         "mesh": "../../meshes/2D/circle36_collision_mesh.obj",
-        "linear_map": "../../weights/higher_order/circle36-P2.hdf5"
+        "linear_map": "../../weights/higher_order/circle36-P2.hdf5",
+        "#mesh": "../../meshes/2D/triangle_ref1_collision_mesh.obj",
+        "#linear_map": "../../weights/higher_order/triangle_ref1-P2.hdf5"
     },
     "obstacles": [{
         "mesh": "../../meshes/2D/obstacles/line.obj",
