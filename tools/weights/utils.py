@@ -42,6 +42,18 @@ def save_weights(path, W, edges=None, faces=None):
     h5f.close()
 
 
+def load_weights(path):
+    with h5py.File(path, 'r') as h5f:
+        if "weight_triplets" in h5f:
+            g = h5f['weight_triplets']
+            return scipy.sparse.coo_matrix(
+                (g['values'][:], (g['rows'][:], g['cols'][:])), g.attrs['shape']
+            ).tocsc()
+        else:
+            assert("weights" in h5f)
+            return h5f['weights']
+
+
 def write_obj(filename, V, E=None, F=None):
     with open(filename, 'w') as f:
         for v in V:

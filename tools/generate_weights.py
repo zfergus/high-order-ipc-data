@@ -8,47 +8,19 @@ import scipy.sparse
 
 from weights.barycentric import compute_barycentric_weights
 from weights.mean_value import compute_mean_value_weights
-
-
-def save_weights(path, W):
-    h5f = h5py.File(path, 'w')
-
-    if scipy.sparse.issparse(W):
-        # Saving as sparse matrix
-        W_coo = W.tocoo()
-        g = h5f.create_group('weight_triplets')
-        g.create_dataset('values', data=W_coo.data)
-        g.create_dataset('rows', data=W_coo.row)
-        g.create_dataset('cols', data=W_coo.col)
-        g.attrs['shape'] = W_coo.shape
-    else:
-        h5f.create_dataset('weights', data=W)
-
-    h5f.close()
-
-
-def load_weights(path):
-    with h5py.File(path, 'r') as h5f:
-        if "weight_triplets" in h5f:
-            g = h5f['weight_triplets']
-            return scipy.sparse.coo_matrix(
-                (g['values'][:], (g['rows'][:], g['cols'][:])), g.attrs['shape']
-            ).tocsc()
-        else:
-            assert("weights" in h5f)
-            return h5f['weights']
+from weights.utils import save_weights, load_weights
 
 
 def test(v_tet, f_tet, f_tri, weights):
     from scipy.spatial.transform import Rotation as R
 
-    T = np.array([
-        [1, 1, 0],
-        [0, 1, 0],
-        [0, 0, 1],
-    ])
-    T = R.from_rotvec(np.pi * np.random.random(3)).as_matrix() @ T
-    # T = np.eye(3)
+    # T = np.array([
+    #     [1, 1, 0],
+    #     [0, 1, 0],
+    #     [0, 0, 1],
+    # ])
+    # T = R.from_rotvec(np.pi * np.random.random(3)).as_matrix() @ T
+    T = np.eye(3)
 
     deformed_v_tet = v_tet @ T.T
     mesh = meshio.Mesh(deformed_v_tet, [("tetra", f_tet)])
