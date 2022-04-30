@@ -204,3 +204,4 @@ out_mvc.vtu
 fem_mesh.obj
 coll_mesh.obj
 phi.hdf5
+results
