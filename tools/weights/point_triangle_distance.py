@@ -4,7 +4,6 @@
 #
 # Was originally some code on mathworks
 
-import numpy
 from numpy import dot
 from math import sqrt
 from numba import jit

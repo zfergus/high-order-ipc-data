@@ -1,9 +1,9 @@
-import itertools
 import numpy as np
 import scipy.sparse
 import h5py
-import igl
 from tqdm import tqdm
+
+import igl
 
 
 def quiet_tqdm(x, quiet):

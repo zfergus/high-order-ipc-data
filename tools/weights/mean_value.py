@@ -1,11 +1,6 @@
-import os
-import csv
-
 import numpy
-import scipy
-from scipy.sparse import lil_matrix, csc_matrix, coo_matrix
+import scipy.sparse
 from numba import jit, prange
-import pandas
 
 import igl
 
@@ -130,4 +125,4 @@ def compute_mean_value_weights(P, V, F, quiet=True):
         # assert(total_w > 0)
         W.append(w / total_w)
 
-    return csc_matrix(W)
+    return scipy.sparse.csc_matrix(W)

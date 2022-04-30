@@ -1,11 +1,12 @@
-import numpy as np
-import igl
-import meshio
 import argparse
 import pathlib
-import scipy.sparse
 import itertools
-import json
+
+import numpy as np
+import scipy.sparse
+import meshio
+
+import igl
 
 from utils import *
 

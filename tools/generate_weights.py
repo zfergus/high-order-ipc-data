@@ -1,10 +1,10 @@
-import numpy as np
-import meshio
-import h5py
 import argparse
 import pathlib
+
+import numpy as np
 import scipy
 import scipy.sparse
+import meshio
 
 from weights.barycentric import compute_barycentric_weights
 from weights.mean_value import compute_mean_value_weights

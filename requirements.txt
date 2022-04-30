@@ -1,0 +1,10 @@
+numpy
+scipy
+numba
+trimesh
+aabbtree
+meshio
+h5py
+tqdm
+# igl
+# pymesh

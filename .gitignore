@@ -192,16 +192,14 @@ cython_debug/
 ###############################################################################
 
 results/
+results
 kinematic-dress/
 tools/output
 *__sf.obj
 *_.csv
 *__tracked_surface.stl
 sparse.csv
-weights/mean_value/armadillo_coarse-to-armadillo.hdf5
-weights/mean_value/armadillo-to-armadillo_verschoor.hdf5
 out_mvc.vtu
 fem_mesh.obj
 coll_mesh.obj
 phi.hdf5
-results

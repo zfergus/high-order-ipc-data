@@ -1,6 +1,5 @@
 import argparse
 import pathlib
-from itertools import permutations
 
 import numpy
 import scipy.sparse
@@ -10,7 +9,8 @@ from tqdm.contrib import tzip
 
 import pymesh
 
-from generate_weights import compute_weights, save_weights
+from weights.barycentric import compute_barycentric_weights
+from weights.utils import save_weights
 
 
 def compute_kDOPs(mesh, k=6):
@@ -137,8 +137,8 @@ def main():
     comps = pymesh.separate_mesh(mesh)
     prev_v = 0
     for i, (comp, proxy) in enumerate(tzip(comps, proxies)):
-        block_weights.append(
-            compute_weights(comp.vertices, proxy.vertices, proxy.voxels))
+        block_weights.append(compute_barycentric_weights(
+            comp.vertices, proxy.vertices, proxy.voxels))
 
         error = numpy.linalg.norm(
             block_weights[-1] @ proxy.vertices - comp.vertices, axis=1)
