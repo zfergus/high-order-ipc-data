@@ -19,9 +19,8 @@
         "rho": 1000
     }],
     "collision_mesh": {
-        "mesh": "../../meshes/armadillo/verschoor/armadillo.ply",
-        "#linear_map": "../../weights/mean_value/armadillo_coarse-to-armadillo.hdf5",
-        "linear_map": "../../weights/barycentric/armadillo_coarse-to-armadillo.hdf5"
+        "mesh": "../../meshes/armadillo/verschoor/armadillo_fine.ply",
+        "linear_map": "../../weights/barycentric/armadillo_coarse-to-armadillo_fine.hdf5"
     },
     "obstacles": [{
         "mesh": "../../meshes/plane.obj",
