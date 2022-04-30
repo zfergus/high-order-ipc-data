@@ -7,7 +7,7 @@ import igl
 import trimesh
 from aabbtree import AABB, AABBTree
 
-from .utils import quiet_tqdm, sorted_tuple
+from .utils import quiet_tqdm, labeled_tqdm, sorted_tuple
 from .point_triangle_distance import pointTriangleDistance
 
 
@@ -64,7 +64,7 @@ def compute_barycentric_weights(P, V, F, quiet=True):
 
     # Build a tree for fast interior checks
     tree = AABBTree()
-    for fi, f in enumerate(F):
+    for fi, f in enumerate(labeled_tqdm(F, "Build AABB Tree")):
         limits = numpy.vstack([V[f].min(axis=0), V[f].max(axis=0)]).T
         tree.add(AABB(limits), fi)
 
@@ -76,7 +76,7 @@ def compute_barycentric_weights(P, V, F, quiet=True):
     BF2F = numpy.array([face_to_tet_id[sorted_tuple(f)] for f in BF])
     surface = trimesh.Trimesh(V, BF)
 
-    for pi, p in enumerate(quiet_tqdm(P, quiet)):
+    for pi, p in enumerate(labeled_tqdm(P, "Compute W")):
         found = False
 
         limits = numpy.vstack([p, p]).T
@@ -96,8 +96,8 @@ def compute_barycentric_weights(P, V, F, quiet=True):
                     p.reshape(1, 3)))
             fi = BF2F[triangle_id[0]]
             M[pi, F[fi]] = compute_barycentric_coords(p, V[F[fi]])
-            d1 = distance_to_tet(
-                p, V[F[fi]], compute_barycentric_coords(p, V[F[fi]]))
+            # d1 = distance_to_tet(
+            #     p, V[F[fi]], compute_barycentric_coords(p, V[F[fi]]))
 
         # Brute force
         # all_bcs = [compute_barycentric_coords(p, V[f]) for f in F]

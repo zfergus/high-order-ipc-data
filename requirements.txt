@@ -6,5 +6,6 @@ aabbtree
 meshio
 h5py
 tqdm
+rtree
 # igl
 # pymesh
