@@ -199,7 +199,6 @@ tools/output
 *_.csv
 *__tracked_surface.stl
 sparse.csv
-out_mvc.vtu
-fem_mesh.obj
-coll_mesh.obj
 phi.hdf5
+/*.obj
+/*.vtu

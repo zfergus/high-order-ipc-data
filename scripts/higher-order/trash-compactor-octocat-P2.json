@@ -20,7 +20,7 @@
         "rho": 1000
     }],
     "collision_mesh": {
-        "mesh": "../../meshes/octocat/octocat_collision_mesh.obj",
+        "mesh": "../../meshes/octocat/octocat-collision-mesh.obj",
         "linear_map": "../../weights/higher_order/octocat-P2.hdf5"
     },
     "obstacles": [{

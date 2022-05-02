@@ -5,6 +5,7 @@ import itertools
 import numpy as np
 import scipy.sparse
 import meshio
+import trimesh
 
 import igl
 
@@ -167,6 +168,11 @@ def build_phi_3D(num_vertices, num_edges, V, BF_in, BF2F, F2E, order, div_per_ed
         F_col.append(f_coll)
     F_col = np.vstack(F_col)
 
+    # Fix face orientation
+    mesh = trimesh.Trimesh(V_col, F_col)
+    trimesh.repair.fix_normals(mesh)
+    F_col = mesh.faces
+
     return phi, F_col
 
 
@@ -189,10 +195,9 @@ def tet_faces(tet):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('mesh', type=pathlib.Path)
-    parser.add_argument('-o,--order', dest="order",
-                        default="2", choices=["2", "3"])
-    parser.add_argument('-m', dest="div_per_edge",
-                        default="10")
+    parser.add_argument('-o,--order', dest="order", type=int, default=2,
+                        choices=[2, 3])
+    parser.add_argument('-m', dest="div_per_edge", type=int, default=10)
 
     args = parser.parse_args()
 
@@ -233,16 +238,20 @@ def main():
 
     # ordering = polyfem_ordering_3D(V_fem.shape[0], E.shape[0], T, order)
 
-    out_weight = "phi.hdf5"
+    root_dir = pathlib.Path(__file__).parents[2]
+
+    out_weight = (root_dir / "weights" / "higher_order" /
+                  f"{args.mesh.stem}-P{order}.hdf5")
     print(f"saving weights to {out_weight}")
     save_weights(out_weight, phi, edges=E, faces=F)
 
-    out_fem_mesh = "fem_mesh.obj"
-    out_coll_mesh = "coll_mesh.obj"
-    print(f"saving FEM mesh to {out_fem_mesh}")
-    write_obj(out_fem_mesh, V_fem, F=F_boundary)
+    out_coll_mesh = args.mesh.parent / f"{args.mesh.stem}-collision-mesh.obj"
     print(f"saving collision mesh to {out_coll_mesh}")
     write_obj(out_coll_mesh, V_col, F=F_col)
+
+    out_fem_mesh = "fem_mesh.obj"
+    print(f"saving FEM mesh to {out_fem_mesh}")
+    write_obj(out_fem_mesh, V_fem, F=F_boundary)
 
 
 if __name__ == '__main__':
