@@ -25,12 +25,12 @@
     "boundary_sidesets": [{
         "id": 2,
         "axis": 2,
-        "position": 0.99,
+        "position": 0.999,
         "relative": true
     }, {
         "id": 4,
         "axis": -2,
-        "position": 0.01,
+        "position": 0.001,
         "relative": true
     }],
     "body_params": [{
