@@ -32,17 +32,24 @@ def test(v_tet, f_tet, f_tri, weights):
 
 
 def test2(coll_mesh, fem_mesh, W):
-    # if scipy.sparse.issparse(W):
-    #     W = W.A
+    if scipy.sparse.issparse(W):
+        W_dense = W.A
+    else:
+        W_dense = W
 
     # coll_mesh.point_data = {
     #     f"w{i:02d}": W[:, i].reshape(-1, 1) for i in range(W.shape[1])
     # }
 
+    U, Σ, Vᵀ = np.linalg.svd(W_dense, full_matrices=False)
+    Σ[Σ != 0] = 1 / Σ
+    Winv = Vᵀ.T @ np.diag(Σ) @ U.T
+
     v = coll_mesh.points.copy()
     v[0, 1] *= 0.75
     u_coll = v - coll_mesh.points
-    u_fem = W.T @ u_coll
+    u_fem = Winv @ u_coll
+    print(Winv.shape, np.product(Winv.shape), (Winv > 0).sum())
 
     coll_mesh.point_data["displacement"] = u_coll
     fem_mesh.point_data["displacement"] = u_fem
@@ -80,8 +87,8 @@ def main():
         out_dir = pathlib.Path(root / "weights" / "barycentric")
     out_dir.mkdir(exist_ok=True, parents=True)
     hdf5_path = (out_dir /
-                 # f'{args.fem_mesh.stem}-to-{args.contact_mesh.stem}.hdf5')
-                 f'{args.contact_mesh.stem}-to-{args.fem_mesh.stem}.hdf5')
+                 f'{args.fem_mesh.stem}-to-{args.contact_mesh.stem}.hdf5')
+    # f'{args.contact_mesh.stem}-to-{args.fem_mesh.stem}.hdf5')
 
     if args.force_recompute or not hdf5_path.exists():
         if args.method == "MVC":
@@ -91,7 +98,7 @@ def main():
         W = scipy.sparse.csc_matrix(W)
         save_weights(hdf5_path, W)
     else:
-        W = scipy.sparse.csc_matrix(load_weights(hdf5_path)).T
+        W = scipy.sparse.csc_matrix(load_weights(hdf5_path))
 
     # Checks error of mapping
     print("Error:", np.linalg.norm(W @ v_fem - v_coll, np.inf))
