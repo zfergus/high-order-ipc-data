@@ -1,13 +1,7 @@
-import argparse
-import pathlib
-
 import numpy as np
 import scipy.sparse
-import meshio
 
-import igl
-
-from utils import *
+from .utils import *
 
 
 hat_phis = {
@@ -100,65 +94,3 @@ def polyfem_ordering_2D(num_vertices, E, F, order):
         if order == 3:
             ordering.append(num_vertices + E.shape[0] + fi)
     return ordering
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('mesh', type=pathlib.Path)
-    parser.add_argument('-o,--order', dest="order", type=int,
-                        default="2", choices=[2, 3])
-    parser.add_argument('-m', dest="div_per_edge", type=int,
-                        default=10)
-
-    args = parser.parse_args()
-
-    # Triangular mesh
-    mesh = meshio.read(args.mesh)
-    assert(mesh.cells[0].type == "triangle")
-    F = mesh.cells[0].data
-    V = mesh.points
-    num_vertices = V.shape[0]
-
-    E_full = igl.edges(F)
-    E_boundary = igl.boundary_facets(F)
-    E_boundary_to_E_full = boundary_to_full(E_boundary, E_full)
-
-    # insert higher order indices at end
-    V = attach_higher_order_nodes(V, E_full, F, args.order)
-
-    # get Φ matrix
-    phi, E_col = build_phi_2D(V.shape[0], num_vertices, E_boundary,
-                              E_boundary_to_E_full, args.order, args.div_per_edge)
-
-    # ordering = polyfem_ordering_2D(num_vertices, E_full, F, args.order)
-    # assert(len(ordering) == phi.shape[1])
-    # phi = phi[:, ordering]
-    # V = V[ordering]
-    # for i, e in enumerate(E_full):
-    #     for j, v in enumerate(e):
-    #         E_full[i, j] = ordering.index(v)
-
-    # center = np.zeros(3)
-    # radius = 0.5
-    # for i in range(E_boundary.shape[0]):
-    #     for j in range(args.order - 1):
-    #         vi = num_vertices + (args.order - 1) * boundary_to_full[i] + j
-    #         print(vi)
-    #         point = V[vi]
-    #         center_to_point = point - center
-    #         center_to_point /= np.linalg.norm(center_to_point)
-    #         V[vi] = center + center_to_point * radius
-
-    save_weights(
-        "phi.hdf5", scipy.sparse.csc_matrix(phi), edges=E_full, faces=F)
-    write_obj("fem_mesh.obj", V, E_full)
-
-    # compute collision matrix
-    V_col = phi @ V
-
-    # test code to visualise
-    write_obj("coll_mesh.obj", V_col, E_col)
-
-
-if __name__ == '__main__':
-    main()

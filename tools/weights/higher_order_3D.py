@@ -1,15 +1,12 @@
-import argparse
-import pathlib
 import itertools
 
 import numpy as np
 import scipy.sparse
-import meshio
 import trimesh
 
 import igl
 
-from utils import *
+from .utils import *
 
 
 hat_phis = {
@@ -42,7 +39,7 @@ hat_phis = {
 }
 
 
-def regular_2d_grid(n):
+def regular_2D_grid(n):
     delta = 1 / (n - 1)
     # map from (i, j) coordinates to vertex id
     ij2v = np.full((n, n), -1)
@@ -87,7 +84,7 @@ def regular_2d_grid(n):
 
 def build_phi_3D(num_vertices, num_edges, V, BF_in, BF2F, F2E, order, div_per_edge):
     """Build Φ_3D"""
-    V_grid, F_grid = regular_2d_grid(div_per_edge)
+    V_grid, F_grid = regular_2D_grid(div_per_edge)
     alphas = V_grid[:, 0]
     betas = V_grid[:, 1]
 
@@ -174,85 +171,3 @@ def build_phi_3D(num_vertices, num_edges, V, BF_in, BF2F, F2E, order, div_per_ed
     F_col = mesh.faces
 
     return phi, F_col
-
-
-def tet_edges(tet):
-    yield tet[[0, 1]]
-    yield tet[[1, 2]]
-    yield tet[[2, 0]]
-    yield tet[[0, 3]]
-    yield tet[[1, 3]]
-    yield tet[[2, 3]]
-
-
-def tet_faces(tet):
-    yield tet[[0, 1, 2]]
-    yield tet[[0, 1, 3]]
-    yield tet[[1, 2, 3]]
-    yield tet[[2, 0, 3]]
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('mesh', type=pathlib.Path)
-    parser.add_argument('-o,--order', dest="order", type=int, default=2,
-                        choices=[2, 3])
-    parser.add_argument('-m', dest="div_per_edge", type=int, default=10)
-
-    args = parser.parse_args()
-
-    # Triangular mesh
-    mesh = meshio.read(args.mesh)
-    assert(mesh.cells[0].type == "tetra")
-    T = np.array(mesh.cells[0].data)
-    V = np.array(mesh.points)
-    num_vertices = V.shape[0]
-
-    order = int(args.order)
-    div_per_edge = int(args.div_per_edge)
-
-    F = np.sort(faces(T))
-    # F = F[:, ::-1]  # Flip normals
-    E = igl.edges(F)
-    F2E = faces_to_edges(F, E)
-    F_boundary = np.sort(igl.boundary_facets(T))
-    # F_boundary = F_boundary[:, ::-1]  # Flip normals
-    F_boundary_to_F_full = boundary_to_full(F_boundary, F)
-
-    # insert higher order indices at end
-    V_fem = attach_higher_order_nodes(V, E, F, order)
-
-    # get phi matrix
-    phi, F_col = build_phi_3D(
-        num_vertices, E.shape[0], V_fem, F_boundary, F_boundary_to_F_full, F2E, order, div_per_edge)
-
-    # compute collision vertices
-    phi = scipy.sparse.csc_matrix(phi)
-    V_col = phi @ V_fem
-
-    # Removing duplicate rows (kind of hacky)
-    print("Checking for duplicate vertices... ", end="")
-    n_vertices_before = V_col.shape[0]
-    _V_col, _, _, _F_col = igl.remove_duplicate_vertices(V_col, F_col, 1e-7)
-    print(f"{n_vertices_before - _V_col.shape[0]} duplicate vertices found")
-
-    # ordering = polyfem_ordering_3D(V_fem.shape[0], E.shape[0], T, order)
-
-    root_dir = pathlib.Path(__file__).parents[2]
-
-    out_weight = (root_dir / "weights" / "higher_order" /
-                  f"{args.mesh.stem}-P{order}.hdf5")
-    print(f"saving weights to {out_weight}")
-    save_weights(out_weight, phi, edges=E, faces=F)
-
-    out_coll_mesh = args.mesh.parent / f"{args.mesh.stem}-collision-mesh.obj"
-    print(f"saving collision mesh to {out_coll_mesh}")
-    write_obj(out_coll_mesh, V_col, F=F_col)
-
-    out_fem_mesh = "fem_mesh.obj"
-    print(f"saving FEM mesh to {out_fem_mesh}")
-    write_obj(out_fem_mesh, V_fem, F=F_boundary)
-
-
-if __name__ == '__main__':
-    main()
