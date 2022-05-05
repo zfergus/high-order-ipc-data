@@ -1,0 +1,37 @@
+{
+    "default_params": "../defaults.json",
+    "discr_order": 2,
+    "problem_params": {
+        "initial_velocity": [{
+            "id": 1,
+            "value": [67, 0]
+        }],
+        "rhs": [0, 0]
+    },
+    "#tend": 4e-3,
+    "dt": 2e-5,
+    "time_steps": 1,
+    "dhat": 0.0000692820323,
+    "meshes": [{
+        "mesh": "../../meshes/2D/triangle_ref_1.obj",
+        "scale": 0.04,
+        "body_id": 1
+    }],
+    "body_params": [{
+        "id": 1,
+        "E": 1e7,
+        "nu": 0.45,
+        "rho": 1150
+    }],
+    "collision_mesh": {
+        "mesh": "../../meshes/2D/triangle_ref_1-collision-mesh.obj",
+        "linear_map": "../../weights/higher_order/triangle_ref1-P2.hdf5",
+        "#linear_map": "../../weights/higher_order/triangle_ref1-P2.hdf5"
+    },
+    "obstacles": [{
+        "mesh": "../../meshes/2D/obstacles/line.obj",
+        "position": [0.105, 0],
+        "rotation": 90,
+        "dimensions": [0.4, 0]
+    }]
+}
