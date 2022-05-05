@@ -7,5 +7,6 @@ meshio
 h5py
 tqdm
 rtree
+networkx
 # igl
 # pymesh

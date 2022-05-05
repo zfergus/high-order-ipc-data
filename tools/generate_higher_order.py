@@ -86,7 +86,7 @@ def main():
 
     out_fem_mesh = "fem_mesh.obj"
     print(f"saving FEM mesh to {out_fem_mesh}")
-    write_obj(out_fem_mesh, V_fem, E=None if BF else E, F=BF)
+    write_obj(out_fem_mesh, V_fem, E=E if BF is None else None, F=BF)
 
 
 if __name__ == '__main__':
