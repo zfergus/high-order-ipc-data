@@ -1,12 +1,16 @@
 {
     "default_params": "../defaults.json",
-    "discr_order": 2,
+    "discr_order": 1,
     "problem_params": {
         "initial_velocity": [{
             "id": 1,
             "value": [67, 0, 0]
         }],
         "rhs": [0, 0, 0]
+    },
+    "solver_params": {
+        "gradNorm": 1e-7, 
+        "useGradNorm": true
     },
     "tend": 4e-3,
     "dt": 2e-5,
@@ -26,9 +30,9 @@
         "nu": 0.45,
         "rho": 1150
     }],
-    "collision_mesh": {
-        "mesh": "../../meshes/2D/sphere-coarse-collision-mesh.obj",
-        "linear_map": "../../weights/higher_order/sphere-coarse-P2.hdf5",
+    "#collision_mesh": {
+        "mesh": "../../meshes/sphere/sphere-coarse-collision-mesh.obj",
+        "linear_map": "../../weights/higher_order/sphere-coarse-P2.hdf5"
     },
     "obstacles": [{
         "mesh": "../../meshes/obstacles/plane.obj",

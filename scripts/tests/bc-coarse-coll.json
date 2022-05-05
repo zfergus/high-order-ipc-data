@@ -10,7 +10,7 @@
     "tend": 1,
     "dt": 0.05,
     "meshes": [{
-        "mesh": "../../meshes/cube/cube-sub4.msh",
+        "mesh": "../../meshes/cube/cube.msh",
         "body_id": 1
     }],
     "body_params": [{
@@ -25,13 +25,17 @@
         "position": 0.999,
         "relative": true
     }],
-    "collision_mesh": {
+    "#collision_mesh": {
         "mesh": "../../meshes/cube/cube.ply",
         "linear_map": "../../weights/barycentric/cube-sub4-to-cube.hdf5"
     },
+    "collision_mesh": {
+        "mesh": "../../meshes/cube/cube-sub4.ply",
+        "linear_map": "../../weights/barycentric/cube-to-cube-sub4.hdf5"
+    },
     "obstacles": [{
         "mesh": "../../meshes/obstacles/erleben/spike.obj",
-        "position": [0.1666666667, -2.01, 0.1666666667],
+        "position": [-0.1666666667, -2.01, 0.1666666667],
         "scale": [0.5, 0.5, 0.5],
         "displacement": [0, "min(t, 0.2)", 0]
     }],
