@@ -29,8 +29,8 @@ def main():
 
     if mesh.cells[0].type == "triangle":
         F = mesh.cells[0].data
-        E = igl.edges(F)
-        BE = igl.boundary_facets(F)
+        E = np.sort(igl.edges(F))
+        BE = np.sort(igl.boundary_facets(F))
         BE2E = boundary_to_full(BE, E)
         BF = None
     elif mesh.cells[0].type == "tetra":
