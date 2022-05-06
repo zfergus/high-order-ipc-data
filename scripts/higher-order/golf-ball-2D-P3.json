@@ -8,6 +8,7 @@
         }],
         "rhs": [0, 0]
     },
+    "bc_method": "sample",
     "tend": 4e-3,
     "dt": 2e-5,
     "#time_integrator": "implict_newmark",
@@ -27,7 +28,7 @@
         "rho": 1150
     }],
     "collision_mesh": {
-        "mesh": "../../meshes/2D/circle36_collision_mesh.obj",
+        "mesh": "../../meshes/2D/circle36-collision-mesh.obj",
         "linear_map": "../../weights/higher_order/circle36-P3.hdf5"
     },
     "obstacles": [{
