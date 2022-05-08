@@ -96,8 +96,10 @@ def main():
         elif args.method == "BC":
             W = compute_barycentric_weights(v_coll, v_fem, f_fem, quiet=False)
         W = scipy.sparse.csc_matrix(W)
+        print(f"Saving weights to {hdf5_path}")
         save_weights(hdf5_path, W)
     else:
+        print(f"Loading weights from {hdf5_path}")
         W = scipy.sparse.csc_matrix(load_weights(hdf5_path))
 
     # Checks error of mapping

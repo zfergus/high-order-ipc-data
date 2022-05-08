@@ -24,7 +24,7 @@
     }],
     "collision_mesh": {
         "mesh": "../../meshes/armadillo/verschoor/armadillo_fine.ply",
-        "linear_map": "../../weights/mean_value/armadillo_coarse-to-armadillo_fine.hdf5"
+        "linear_map": "../../weights/barycentric/armadillo_coarse-to-armadillo_fine.hdf5"
     },
     "obstacles": [{
         "mesh": "../../meshes/obstacles/verschoor/roller0.obj",
@@ -74,9 +74,6 @@
         "position": [0, 0.2, 0]
     }],
     "export": {
-        "volume": false,
-        "surface": true,
-        "friction_forces": true,
         "time_sequence": "armadillo-rollers.pvd"
     }
 }

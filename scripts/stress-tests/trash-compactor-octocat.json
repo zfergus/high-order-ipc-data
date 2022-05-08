@@ -6,7 +6,7 @@
     "tend": 2.5,
     "dt": 0.01,
     "meshes": [{
-        "mesh": "../../meshes/octocat/octocat.msh",
+        "mesh": "../../meshes/octocat/octocat-coarse.msh",
         "position": [0, -0.2, 0],
         "rotation": [-90, 0, 0],
         "scale": 0.02,
@@ -20,7 +20,7 @@
     }],
     "collision_mesh": {
         "mesh": "../../meshes/octocat/octocat.ply",
-        "linear_map": "../../weights/mean_value/octocat-to-octocat.hdf5"
+        "linear_map": "../../weights/barycentric/octocat-coarse-to-octocat.hdf5"
     },
     "obstacles": [{
         "mesh": "../../meshes/obstacles/unit-plane.obj",
