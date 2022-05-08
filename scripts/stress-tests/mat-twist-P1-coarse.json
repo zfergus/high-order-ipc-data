@@ -14,7 +14,7 @@
     "tend": 10,
     "dt": 0.04,
     "meshes": [{
-        "mesh": "../../meshes/mat/mat20x20-collision-mesh.msh",
+        "mesh": "../../meshes/mat/mat20x20.msh",
         "position": [0, 0, 0],
         "rotation": [90, 0, 0],
         "body_id": 1
