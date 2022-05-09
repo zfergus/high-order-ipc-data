@@ -4,11 +4,11 @@ SCRIPTS_ROOT=$SCRATCH/decoupled-contact/scripts
 
 SCRIPTS=(
     # "$SCRIPTS_ROOT/friction/armadillo-roller.json"
-    "$SCRIPTS_ROOT/friction/armadillo-roller-baseline.json"
+    # "$SCRIPTS_ROOT/friction/armadillo-roller-baseline.json"
     # "$SCRIPTS_ROOT/stress-tests/trash-compactor-octocat.json"
-    "$SCRIPTS_ROOT/stress-tests/trash-compactor-octocat-baseline.json"
+    # "$SCRIPTS_ROOT/stress-tests/trash-compactor-octocat-baseline.json"
     # "$SCRIPTS_ROOT/rigid/screw.json"
-    "$SCRIPTS_ROOT/rigid/screw-baseline.json"
+    # "$SCRIPTS_ROOT/rigid/screw-baseline.json"
     # "$SCRIPTS_ROOT/stress-tests/mat-twist-P1-coarse.json"
     # "$SCRIPTS_ROOT/stress-tests/mat-twist-P1.json"
     # "$SCRIPTS_ROOT/stress-tests/mat-twist-P2.json"
