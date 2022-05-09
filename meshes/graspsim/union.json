@@ -1,0 +1,5 @@
+{
+    "operation": "union",
+    "left": "paddle.obj",
+    "right": "round_pad.obj"
+}

@@ -1,0 +1,79 @@
+{
+    "default_params": "../defaults.json",
+
+    "#units": "cgs",
+
+
+    "problem_params": {
+        "dirichlet_boundary": [{
+            "id": 1,
+            "value": ["1 * min(t, 0.6)", "1 * max(0, t-0.6)", 0]
+        }, {
+            "id": 2,
+            "value": ["-1 * min(t, 0.6)", "1 * max(0, t-0.6)", 0]
+        }],
+        "rhs": [0, 9810, 0]
+    },
+
+    "dt": 0.02,
+    "tend": 2,
+
+    "mu": 0.03,
+    "barrier_stiffness": 1e6,
+
+    "meshes": [{
+        "mesh": "../../meshes/graspsim/gripper.msh",
+        "position": [-2, 1.5, 0],
+        "rotation": [0, 0, 0]
+    }, {
+        "mesh": "../../meshes/graspsim/gripper.msh",
+        "position": [2, 1.5, 0],
+        "rotation": [0, 180, 0]
+    }, {
+        "mesh": "../../meshes/cube/cube.msh",
+        "position": [0, 1.5, 0],
+        "scale": 3,
+        "body_id": 3
+    }],
+
+    "body_params": [{
+        "name": "paddle",
+        "id": 1,
+        "E": 2e12,
+        "nu": 0.3,
+        "rho": 7.750
+    }, {
+        "name": "pad",
+        "id": 2,
+        "E": 1e8,
+        "nu": 0.45,
+        "rho": 2.3
+    }, {
+        "name": "object",
+        "id": 3,
+        "E": 1e10,
+        "nu": 0.3,
+        "rho": 0.111
+    }],
+
+    "boundary_sidesets": [{
+        "id": 1,
+        "box": [
+            [0, 0.99, 0],
+            [0.5, 1, 1]
+        ],
+        "relative": true
+    }, {
+        "id": 2,
+        "box": [
+            [0.5, 0.99, 0],
+            [1, 1, 1]
+        ],
+        "relative": true
+    }],
+
+    "obstacles": [{
+        "mesh": "../../meshes/obstacles/plane.obj",
+        "position": [0, -0.01, 0]
+    }]
+}

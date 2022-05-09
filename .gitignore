@@ -202,3 +202,4 @@ sparse.csv
 phi.hdf5
 /*.obj
 /*.vtu
+*_config.txt
