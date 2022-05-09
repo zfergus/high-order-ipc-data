@@ -35,7 +35,11 @@
         "position": [22.5, 10.5, -7.5],
         "rotation": [0, 0, 0],
         "scale": 4.5,
-        "body_id": 3
+        "body_id": 3,
+        "collision_mesh": {
+            "mesh": "../../meshes/gargoyle/gargoyle-coarse.ply",
+            "linear_map": "../../weights/barycentric/gargoyle-coarse.ply",
+        }
     }],
 
     "body_params": [{
