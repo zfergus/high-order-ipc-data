@@ -12,6 +12,8 @@ SCRIPTS=(
     # "$SCRIPTS_ROOT/stress-tests/mat-twist-P1-coarse.json"
     # "$SCRIPTS_ROOT/stress-tests/mat-twist-P1.json"
     # "$SCRIPTS_ROOT/stress-tests/mat-twist-P2.json"
+    "$SCRIPTS_ROOT/graspsim/grasp-gargoyle.json"
+    # "$SCRIPTS_ROOT/graspsim/grasp-gargoyle-baseline.json"
     # "$SCRIPTS_ROOT/baseline/full-full.json"
     # "$SCRIPTS_ROOT/baseline/full-reduced.json"
     # "$SCRIPTS_ROOT/baseline/reduced-full.json"
