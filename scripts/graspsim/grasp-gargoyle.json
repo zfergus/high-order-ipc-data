@@ -38,7 +38,7 @@
         "body_id": 3,
         "collision_mesh": {
             "mesh": "../../meshes/gargoyle/gargoyle-coarse.ply",
-            "linear_map": "../../weights/barycentric/gargoyle-coarse.ply",
+            "linear_map": "../../weights/barycentric/gargoyle-coarse.ply"
         }
     }],
 

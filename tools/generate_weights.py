@@ -64,19 +64,16 @@ def test2(coll_mesh, fem_mesh, W):
 def upsample(V, F, div_per_edge):
     """Build Φ_3D"""
     upsampled_V = [V]
-    downsample_buddies = [[i] for i in range(V.shape[0])]
+    downsample_buddies = [[[i, 1.0]] for i in range(V.shape[0])]
     v_count = V.shape[0]
 
-    breakpoint()
     E = igl.edges(F)
     edge_alphas = np.linspace(0, 1, div_per_edge)[1:-1]
     for e in E:
         v0, v1 = V[e]
         for alpha in edge_alphas:
-            if alpha <= 0.5:
-                downsample_buddies[e[0]].append(v_count)
-            if alpha >= 0.5:
-                downsample_buddies[e[1]].append(v_count)
+            downsample_buddies[e[0]].append([v_count, 1 - alpha])
+            downsample_buddies[e[1]].append([v_count, alpha])
             upsampled_V.append((v1 - v0) * alpha + v0)
             v_count += 1
 
@@ -88,20 +85,19 @@ def upsample(V, F, div_per_edge):
             # no edge values
             assert(alpha > 0 and alpha < 1)
             assert(beta > 0 and beta < 1)
-            v = (v1 - v0) * alpha + (v2 - v0) * beta + v0
-            breakpoint()
-            distances = np.linalg.norm(V[f] - v, axis=1)
-            downsample_buddies[f[distances.argmin()]].append(v_count)
-            upsampled_V.append(v)
+            downsample_buddies[f[0]].append([v_count, alpha])
+            downsample_buddies[f[1]].append([v_count, beta])
+            downsample_buddies[f[2]].append([v_count, 1 - alpha - beta])
+            upsampled_V.append((v1 - v0) * alpha + (v2 - v0) * beta + v0)
             v_count += 1
 
-    return upsampled_V, downsample_buddies
+    return np.vstack(upsampled_V), downsample_buddies
 
 
 def downsample(W, downsample_buddies):
     W_downsampled = np.vstack([
-        W[i] + W[buddies].sum(axis=0)
-        for i, buddies in enumerate(downsample_buddies)])
+        sum(weight * W[buddy] for buddy, weight in buddies).A
+        for buddies in downsample_buddies])
     W_downsampled /= W_downsampled.sum(axis=1)[:, None]
     return W_downsampled
 
@@ -120,12 +116,12 @@ def main():
 
     coll_mesh = meshio.read(args.contact_mesh)
     assert(coll_mesh.cells[0].type == "triangle")  # Triangular mesh
-    f_coll = coll_mesh.cells[0].data
+    f_coll = coll_mesh.cells[0].data.astype(int)
     v_coll = coll_mesh.points
 
     fem_mesh = meshio.read(args.fem_mesh)
     assert(fem_mesh.cells[0].type == "tetra")  # Tetrahedral Mesh
-    f_fem = fem_mesh.cells[0].data
+    f_fem = fem_mesh.cells[0].data.astype(int)
     v_fem = fem_mesh.points
 
     root = pathlib.Path(__file__).parents[1]
@@ -138,16 +134,23 @@ def main():
                  f'{args.fem_mesh.stem}-to-{args.contact_mesh.stem}.hdf5')
     # f'{args.contact_mesh.stem}-to-{args.fem_mesh.stem}.hdf5')
 
-    if(v_fem.shape[0] > v_coll.shape[0]):
-        upsampled_V, downsample_buddies = upsample(v_coll, f_coll, 10)
-        write_obj("test.obj", upsampled_V)
-        exit(0)
+    # if(v_fem.shape[0] > v_coll.shape[0]):
+    upsampled_V, downsample_buddies = upsample(
+        v_coll, f_coll, 10)  # int(np.ceil(v_fem.shape[0] / v_coll.shape[0])))
+    # write_obj("test.obj", upsampled_V)
+    # exit(0)
+    # else:
+    #     upsampled_V = v_coll
+    #     downsample_buddies = None
 
     if args.force_recompute or not hdf5_path.exists():
         if args.method == "MVC":
             W = compute_mean_value_weights(v_coll, v_fem, f_fem, quiet=False)
         elif args.method == "BC":
-            W = compute_barycentric_weights(v_coll, v_fem, f_fem, quiet=False)
+            W = compute_barycentric_weights(
+                upsampled_V, v_fem, f_fem, quiet=False)
+            if downsample_buddies is not None:
+                W = downsample(W, downsample_buddies)
         W = scipy.sparse.csc_matrix(W)
         print(f"Saving weights to {hdf5_path}")
         save_weights(hdf5_path, W)
@@ -156,7 +159,7 @@ def main():
         W = scipy.sparse.csc_matrix(load_weights(hdf5_path))
 
     # Checks error of mapping
-    print("Error:", np.linalg.norm(W @ v_fem - v_coll, np.inf))
+    # print("Error:", np.linalg.norm(W @ v_fem - v_coll, np.inf))
 
     # test(v_tet, f_tet, f_tri, W)
     # test2(coll_mesh, fem_mesh, W)
