@@ -36,11 +36,12 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Eigen::SparseMatrix<double> L2_projection(
+Eigen::SparseMatrix<double> compute_L2_projection_weights(
     const Eigen::MatrixXd& V_fem,
     const Eigen::MatrixXi& F_fem,
     const Eigen::MatrixXd& V_coll,
-    const Eigen::MatrixXi& F_coll);
+    const Eigen::MatrixXi& F_coll,
+    bool lump_mass_matrix = true);
 
 Eigen::SparseMatrix<double> compute_mass_mat(
     const int num_nodes,
@@ -56,9 +57,8 @@ Eigen::SparseMatrix<double> compute_mass_mat_cross(
     const std::vector<Basis>& coll_bases,
     const Quadrature& quadrature);
 
-void find_and_eval(
+void eval_phi_j(
     const std::vector<Basis>& bases,
-    const Eigen::MatrixXd& V,
-    const Eigen::MatrixXi& F,
-    const Eigen::Vector3d& p,
+    const size_t index,
+    const Eigen::Vector2d& x,
     std::vector<std::pair<size_t, double>>& out);

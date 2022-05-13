@@ -1,17 +1,17 @@
 #include "L2_projection.hpp"
 
+#include <iostream>
 #include <vector>
 #include <filesystem>
 
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 #include <Eigen/SparseLU>
+#include <unsupported/Eigen/SparseExtra>
 
 #include <igl/readCSV.h>
 #include <igl/per_vertex_normals.h>
 #include <igl/embree/line_mesh_intersection.h>
-
-#include <spdlog/spdlog.h>
 
 template <typename DerivedA, typename DerivedB>
 Eigen::Vector3d cross(
@@ -138,35 +138,12 @@ Eigen::SparseMatrix<double> compute_mass_mat(
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void find_and_eval(
-    const Eigen::MatrixXd& V,
-    const Eigen::MatrixXi& F,
+void eval_phi_j(
     const std::vector<Basis>& bases,
-    const Eigen::Vector3d& p,
-    const Eigen::Vector3d& normal,
+    const size_t index,
+    const Eigen::Vector2d& x,
     std::vector<std::pair<size_t, double>>& out)
 {
-    Eigen::RowVector3d id_and_coord = igl::embree::line_mesh_intersection(
-        p.transpose(), normal.transpose(), V, F);
-
-    // find the closest element index
-    size_t index(id_and_coord(0));
-    // find the coords of the closest point in the closest element
-    // Eigen::Vector3d coords;
-    // barycentric_coordinates(
-    //     p, V.row(F(index, 0)), V.row(F(index, 1)), V.row(F(index, 2)),
-    //     coords);
-    Eigen::Vector3d coords(
-        1 - id_and_coord(1) - id_and_coord(2), //
-        id_and_coord(1),                       //
-        id_and_coord(2));
-    assert(std::isfinite(coords[0]));
-    assert(std::isfinite(coords[1]));
-    assert(std::isfinite(coords[2]));
-
-    Eigen::Vector2d x = coords[0] * Eigen::Vector2d(0, 0)
-        + coords[1] * Eigen::Vector2d(1, 0) + coords[2] * Eigen::Vector2d(0, 1);
-
     const Basis& basis = bases[index];
     out.clear();
     out.reserve(basis.n_bases);
@@ -189,6 +166,28 @@ Eigen::SparseMatrix<double> compute_mass_mat_cross(
     Eigen::MatrixXd N_coll;
     igl::per_vertex_normals(V_coll, F_coll, N_coll);
 
+    Eigen::MatrixXd origins(
+        coll_bases.size() * 3 * quadrature.points.rows(), 3);
+    Eigen::MatrixXd rays(origins.rows(), origins.cols());
+
+    size_t ray_i = 0;
+    for (const Basis& basis : coll_bases) {
+        for (int i = 0; i < basis.n_bases; i++) {
+            for (int qi = 0; qi < quadrature.points.rows(); qi++) {
+                const Eigen::Vector3d& t = quadrature.point(qi);
+                origins.row(ray_i) = basis.gmapping(t);
+                rays.row(ray_i) = t[0] * N_coll.row(basis.loc_2_glob(0))
+                    + t[1] * N_coll.row(basis.loc_2_glob(1))
+                    + t[2] * N_coll.row(basis.loc_2_glob(2));
+                ray_i++;
+            }
+        }
+    }
+
+    Eigen::MatrixX3d ids_and_coords =
+        igl::embree::line_mesh_intersection(origins, rays, V_fem, F_fem);
+
+    ray_i = 0;
     for (const Basis& basis : coll_bases) {
         for (int i = 0; i < basis.n_bases; i++) {
             std::unordered_map<size_t, double> others;
@@ -197,21 +196,15 @@ Eigen::SparseMatrix<double> compute_mass_mat_cross(
                 const Eigen::Vector3d& t = quadrature.point(qi);
                 const double w = quadrature.weight(qi);
 
-                Eigen::Vector2d x = t[0] * Eigen::Vector2d(0, 0)
-                    + t[1] * Eigen::Vector2d(1, 0)
-                    + t[2] * Eigen::Vector2d(0, 1);
-
-                Eigen::Vector3d pt = basis.gmapping(t);
-                Eigen::Vector3d normal = //
-                    t[0] * N_coll.row(basis.loc_2_glob(0))
-                    + t[1] * N_coll.row(basis.loc_2_glob(0))
-                    + t[2] * N_coll.row(basis.loc_2_glob(0));
                 std::vector<std::pair<size_t, double>> bb;
-                find_and_eval(V_fem, F_fem, fem_bases, pt, normal, bb);
+                eval_phi_j(
+                    fem_bases, int(ids_and_coords(ray_i, 0)),
+                    ids_and_coords.row(ray_i).tail<2>(), bb);
+                ray_i++;
 
+                const double phi_i = basis.phi(i)(t.tail<2>());
                 for (const auto& [j, phi_j] : bb) {
-                    double val =
-                        w * basis.phi(i)(x) * phi_j * basis.grad_gmapping(t);
+                    double val = w * phi_i * phi_j * basis.grad_gmapping(t);
 
                     auto got = others.find(j);
                     if (got == others.end()) {
@@ -220,10 +213,10 @@ Eigen::SparseMatrix<double> compute_mass_mat_cross(
                         got->second += val;
                     }
                 }
+            }
 
-                for (const auto& [j, val] : others) {
-                    tripets.emplace_back(basis.loc_2_glob(i), j, val);
-                }
+            for (const auto& [j, val] : others) {
+                tripets.emplace_back(basis.loc_2_glob(i), j, val);
             }
         }
     }
@@ -233,13 +226,15 @@ Eigen::SparseMatrix<double> compute_mass_mat_cross(
     A.setFromTriplets(tripets.begin(), tripets.end());
     return A;
 }
+
 ////////////////////////////////////////////////////////////////////////////////
 
-Eigen::SparseMatrix<double> L2_projection(
+Eigen::SparseMatrix<double> compute_L2_projection_weights(
     const Eigen::MatrixXd& V_fem,
     const Eigen::MatrixXi& F_fem,
     const Eigen::MatrixXd& V_coll,
-    const Eigen::MatrixXi& F_coll)
+    const Eigen::MatrixXi& F_coll,
+    bool lump_mass_matrix)
 {
     Quadrature quadrature;
 
@@ -250,17 +245,35 @@ Eigen::SparseMatrix<double> L2_projection(
     Eigen::SparseMatrix<double> M =
         compute_mass_mat(V_coll.rows(), coll_bases, quadrature);
 
+    if (lump_mass_matrix) {
+        Eigen::VectorXd lumped_values = Eigen::VectorXd::Zero(M.rows());
+        for (int k = 0; k < M.outerSize(); ++k) {
+            for (Eigen::SparseMatrix<double>::InnerIterator it(M, k); it;
+                 ++it) {
+                lumped_values(it.row()) += it.value();
+            }
+        }
+        M.setZero();
+        M = lumped_values.asDiagonal();
+    }
+
     Eigen::SparseMatrix<double> A = compute_mass_mat_cross(
         V_fem, F_fem, fem_bases, V_coll, F_coll, coll_bases, quadrature);
 
-    // Eigen::SparseLU<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>>
-    //     solver;
-    // // Compute the ordering permutation vector from the structural pattern of
-    // A solver.analyzePattern(M);
-    // // Compute the numerical factorization
-    // solver.factorize(M);
-    // // Use the factors to solve the linear system
-    // Eigen::SparseMatrix<double> W = solver.solve(A);
+    Eigen::SparseLU<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>>
+        solver;
+    // Compute the ordering permutation vector from the structural pattern of
+    solver.analyzePattern(M);
+    // Compute the numerical factorization
+    solver.factorize(M);
 
-    return A;
+    if (solver.info() != Eigen::Success) {
+        Eigen::saveMarket(M, "mass_matrix.mtx");
+        throw std::runtime_error("Unable to factorize mass matrix");
+    }
+
+    // Use the factors to solve the linear system
+    Eigen::SparseMatrix<double> W = solver.solve(A);
+
+    return W;
 }

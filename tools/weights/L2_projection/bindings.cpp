@@ -1,25 +1,28 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
+#include <pybind11/functional.h>
 
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
+
+#include <igl/embree/line_mesh_intersection.h>
 
 #include "L2_projection.hpp"
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(L2_projection, m)
+PYBIND11_MODULE(L2, m)
 {
     m.doc() = "L2 Projection";
 
     m.def(
-        "L2_projection", L2_projection,
+        "compute_L2_projection_weights", compute_L2_projection_weights,
         R"L2_Qu8mg5v7(
         Compute the L2 projection weight matrix.
         )L2_Qu8mg5v7",
         py::arg("V_fem"), py::arg("F_fem"), py::arg("V_coll"),
-        py::arg("F_coll"));
+        py::arg("F_coll"), py::arg("lump_mass_matrix") = true);
 
     m.def(
         "compute_mass_mat", compute_mass_mat,
@@ -50,6 +53,19 @@ PYBIND11_MODULE(L2_projection, m)
         )L2_Qu8mg5v7",
         py::arg("V"), py::arg("F"));
 
+    m.def(
+        "eval_phi_j",
+        [](const std::vector<Basis>& bases, const size_t index,
+           const Eigen::Vector2d& x) {
+            std::vector<std::pair<size_t, double>> out;
+            eval_phi_j(bases, index, x, out);
+            return out;
+        },
+        R"L2_Qu8mg5v7(
+        Evaluate phi_j
+        )L2_Qu8mg5v7",
+        py::arg("bases"), py::arg("index"), py::arg("x"));
+
     py::class_<Basis>(m, "Basis")
         .def(py::init())
         .def("phi", &Basis::phi)
@@ -67,4 +83,29 @@ PYBIND11_MODULE(L2_projection, m)
         .def("weight", &Quadrature::weight)
         .def_readwrite("points", &Quadrature::points)
         .def_readwrite("weights", &Quadrature::weights);
+
+    m.def(
+        "igl_embree_line_mesh_intersection",
+        igl::embree::line_mesh_intersection<Eigen::MatrixXd, Eigen::MatrixXi>,
+        R"L2_Qu8mg5v7(
+        Project the point cloud V_source onto the triangle mesh
+        V_target,F_target. 
+        A ray is casted for every vertex in the direction specified by 
+        N_source and its opposite.
+
+        Input:
+        V_source: #Vx3 Vertices of the source mesh
+        N_source: #Vx3 Normals of the point cloud
+        V_target: #V2x3 Vertices of the target mesh
+        F_target: #F2x3 Faces of the target mesh
+
+        Output:
+        #Vx3 matrix of baricentric coordinate. Each row corresponds to 
+        a vertex of the projected mesh and it has the following format:
+        id b1 b2. id is the id of a face of the source mesh. b1 and b2 are 
+        the barycentric coordinates wrt the first two edges of the triangle
+        To convert to standard global coordinates, see barycentric_to_global.h
+        )L2_Qu8mg5v7",
+        py::arg("V_source"), py::arg("N_source"), py::arg("V_target"),
+        py::arg("F_target"));
 }

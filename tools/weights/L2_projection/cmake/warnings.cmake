@@ -3,11 +3,11 @@
 # http://stackoverflow.com/questions/5088460/flags-to-enable-thorough-and-verbose-g-warnings
 ################################################################################
 
-if(TARGET L2_projection::warnings)
+if(TARGET L2::warnings)
 	return()
 endif()
 
-set(L2_PROJECTION_FLAGS
+set(L2_FLAGS
 	-Wall
 	-Wextra
 	-pedantic
@@ -149,15 +149,15 @@ set(L2_PROJECTION_FLAGS
 
 # Flags above don't make sense for MSVC
 if(MSVC)
-	set(L2_PROJECTION_FLAGS)
+	set(L2_FLAGS)
 endif()
 
 include(CheckCXXCompilerFlag)
 
 add_library(L2_projection_warnings INTERFACE)
-add_library(L2_projection::warnings ALIAS L2_projection_warnings)
+add_library(L2::warnings ALIAS L2_projection_warnings)
 
-foreach(FLAG IN ITEMS ${L2_PROJECTION_FLAGS})
+foreach(FLAG IN ITEMS ${L2_FLAGS})
 	string(REPLACE "=" "-" FLAG_VAR "${FLAG}")
 	if(NOT DEFINED IS_SUPPORTED_${FLAG_VAR})
 		check_cxx_compiler_flag("${FLAG}" IS_SUPPORTED_${FLAG_VAR})
