@@ -14,13 +14,13 @@
     }],
     "body_params": [{
         "id": 1,
-        "E": 1e5,
+        "E": 1e4,
         "nu": 0.2,
         "rho": 1000
     }],
     "collision_mesh": {
         "mesh": "../../meshes/gargoyle/gargoyle-coarse.ply",
-        "linear_map": "../../weights/BC/gargoyle-to-gargoyle-coarse.hdf5"
+        "linear_map": "../../weights/barycentric/gargoyle-to-gargoyle-coarse.hdf5"
     },
     "obstacles": [{
         "mesh": "../../meshes/plane.obj",

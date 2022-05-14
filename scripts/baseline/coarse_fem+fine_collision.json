@@ -20,7 +20,7 @@
     }],
     "collision_mesh": {
         "mesh": "../../meshes/gargoyle/gargoyle.ply",
-        "linear_map": "../../weights/BC/gargoyle-coarse-to-gargoyle.hdf5"
+        "linear_map": "../../weights/barycentric/gargoyle-coarse-to-gargoyle.hdf5"
     },
     "obstacles": [{
         "mesh": "../../meshes/obstacles/plane.obj",
