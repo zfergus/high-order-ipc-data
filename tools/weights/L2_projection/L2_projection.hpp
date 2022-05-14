@@ -3,6 +3,12 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
+namespace L2 {
+
+double hat_phi0(const Eigen::Vector2d& x);
+double hat_phi1(const Eigen::Vector2d& x);
+double hat_phi2(const Eigen::Vector2d& x);
+
 class Basis {
 public:
     std::function<double(const Eigen::Vector2d&)> phi(int i) const;
@@ -15,10 +21,8 @@ public:
     Eigen::Vector3d v1;
     Eigen::Vector3d v2;
 
-    static void build_bases(
-        const Eigen::MatrixXd& V,
-        const Eigen::MatrixXi& F,
-        std::vector<Basis>& bases);
+    static std::vector<Basis>
+    build_bases(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -36,17 +40,16 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Eigen::SparseMatrix<double> compute_L2_projection_weights(
-    const Eigen::MatrixXd& V_fem,
-    const Eigen::MatrixXi& F_fem,
-    const Eigen::MatrixXd& V_coll,
-    const Eigen::MatrixXi& F_coll,
-    bool lump_mass_matrix = true);
+std::tuple<Eigen::MatrixXd, Eigen::MatrixXd> build_rays(
+    const Eigen::MatrixXd& V,
+    const Eigen::MatrixXi& F,
+    const std::vector<Basis>& bases,
+    const Eigen::MatrixXd& quadrature_points);
 
 Eigen::SparseMatrix<double> compute_mass_mat(
     const int num_nodes,
     const std::vector<Basis>& bases,
-    const Quadrature& quadrature);
+    const Quadrature& quadrature = Quadrature());
 
 Eigen::SparseMatrix<double> compute_mass_mat_cross(
     const Eigen::MatrixXd& V_fem,
@@ -55,10 +58,11 @@ Eigen::SparseMatrix<double> compute_mass_mat_cross(
     const Eigen::MatrixXd& V_coll,
     const Eigen::MatrixXi& F_coll,
     const std::vector<Basis>& coll_bases,
-    const Quadrature& quadrature);
+    const std::function<Eigen::MatrixXd(
+        const Eigen::MatrixXd&,
+        const Eigen::MatrixXd&,
+        const Eigen::MatrixXd&,
+        const Eigen::MatrixXi)> closest_points,
+    const Quadrature& quadrature = Quadrature());
 
-void eval_phi_j(
-    const std::vector<Basis>& bases,
-    const size_t index,
-    const Eigen::Vector2d& x,
-    std::vector<std::pair<size_t, double>>& out);
+} // namespace L2

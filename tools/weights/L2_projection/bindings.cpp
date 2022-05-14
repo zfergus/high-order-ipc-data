@@ -14,57 +14,15 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(L2, m)
 {
+    using namespace L2;
+
     m.doc() = "L2 Projection";
 
-    m.def(
-        "compute_L2_projection_weights", compute_L2_projection_weights,
-        R"L2_Qu8mg5v7(
-        Compute the L2 projection weight matrix.
-        )L2_Qu8mg5v7",
-        py::arg("V_fem"), py::arg("F_fem"), py::arg("V_coll"),
-        py::arg("F_coll"), py::arg("lump_mass_matrix") = true);
+    ///////////////////////////////////////////////////////////////////////////
 
-    m.def(
-        "compute_mass_mat", compute_mass_mat,
-        R"L2_Qu8mg5v7(
-        Compute the compute mass matrix.
-        )L2_Qu8mg5v7",
-        py::arg("num_nodes"), py::arg("bases"), py::arg("quadrature"));
-
-    m.def(
-        "compute_mass_mat_cross", compute_mass_mat_cross,
-        R"L2_Qu8mg5v7(
-        Compute the compute mass matrix cross.
-        )L2_Qu8mg5v7",
-        py::arg("V_fem"), py::arg("F_fem"), py::arg("fem_bases"),
-        py::arg("V_coll"), py::arg("F_coll"), py::arg("coll_bases"),
-        py::arg("quadrature"));
-
-    m.def(
-        "build_bases",
-        [](const Eigen::MatrixXd& V,
-           const Eigen::MatrixXi& F) -> std::vector<Basis> {
-            std::vector<Basis> bases;
-            Basis::build_bases(V, F, bases);
-            return bases;
-        },
-        R"L2_Qu8mg5v7(
-        Build the basis.
-        )L2_Qu8mg5v7",
-        py::arg("V"), py::arg("F"));
-
-    m.def(
-        "eval_phi_j",
-        [](const std::vector<Basis>& bases, const size_t index,
-           const Eigen::Vector2d& x) {
-            std::vector<std::pair<size_t, double>> out;
-            eval_phi_j(bases, index, x, out);
-            return out;
-        },
-        R"L2_Qu8mg5v7(
-        Evaluate phi_j
-        )L2_Qu8mg5v7",
-        py::arg("bases"), py::arg("index"), py::arg("x"));
+    m.def("hat_phi0", &hat_phi0);
+    m.def("hat_phi1", &hat_phi1);
+    m.def("hat_phi2", &hat_phi2);
 
     py::class_<Basis>(m, "Basis")
         .def(py::init())
@@ -77,12 +35,52 @@ PYBIND11_MODULE(L2, m)
         .def_readwrite("v1", &Basis::v1)
         .def_readwrite("v2", &Basis::v2);
 
+    m.def(
+        "build_bases", Basis::build_bases,
+        R"L2_Qu8mg5v7(
+        Build the basis.
+        )L2_Qu8mg5v7",
+        py::arg("V"), py::arg("F"));
+
+    ///////////////////////////////////////////////////////////////////////////
+
     py::class_<Quadrature>(m, "Quadrature")
         .def(py::init())
         .def("point", &Quadrature::point)
         .def("weight", &Quadrature::weight)
         .def_readwrite("points", &Quadrature::points)
         .def_readwrite("weights", &Quadrature::weights);
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    m.def(
+        "compute_mass_mat", compute_mass_mat,
+        R"L2_Qu8mg5v7(
+        Compute the compute mass matrix.
+        )L2_Qu8mg5v7",
+        py::arg("num_nodes"), py::arg("bases"),
+        py::arg("quadrature") = Quadrature());
+
+    m.def(
+        "compute_mass_mat_cross", compute_mass_mat_cross,
+        R"L2_Qu8mg5v7(
+        Compute the compute mass matrix cross.
+        )L2_Qu8mg5v7",
+        py::arg("V_fem"), py::arg("F_fem"), py::arg("fem_bases"),
+        py::arg("V_coll"), py::arg("F_coll"), py::arg("coll_bases"),
+        py::arg("closest_points"), py::arg("quadrature") = Quadrature());
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    m.def(
+        "build_rays", build_rays,
+        R"L2_Qu8mg5v7(
+        Build ray origins and directions
+        )L2_Qu8mg5v7",
+        py::arg("V"), py::arg("F"), py::arg("bases"),
+        py::arg("quadrature_points"));
+
+    ///////////////////////////////////////////////////////////////////////////
 
     m.def(
         "igl_embree_line_mesh_intersection",

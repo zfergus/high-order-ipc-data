@@ -13,6 +13,8 @@
 #include <igl/per_vertex_normals.h>
 #include <igl/embree/line_mesh_intersection.h>
 
+namespace L2 {
+
 template <typename DerivedA, typename DerivedB>
 Eigen::Vector3d cross(
     const Eigen::MatrixBase<DerivedA>& a, const Eigen::MatrixBase<DerivedB>& b)
@@ -23,27 +25,6 @@ Eigen::Vector3d cross(
     c(1) = a(2) * b(0) - a(0) * b(2);
     c(2) = a(0) * b(1) - a(1) * b(0);
     return c;
-}
-
-// Compute barycentric coordinates (u, v, w) for
-// point p with respect to triangle (a, b, c)
-void barycentric_coordinates(
-    const Eigen::Vector3d& p,
-    const Eigen::Vector3d& a,
-    const Eigen::Vector3d& b,
-    const Eigen::Vector3d& c,
-    Eigen::Vector3d& uvw)
-{
-    Eigen::Vector3d v0 = b - a, v1 = c - a, v2 = p - a;
-    double d00 = v0.dot(v0);
-    double d01 = v0.dot(v1);
-    double d11 = v1.dot(v1);
-    double d20 = v2.dot(v0);
-    double d21 = v2.dot(v1);
-    double denom = d00 * d11 - d01 * d01;
-    uvw[1] = (d11 * d20 - d01 * d21) / denom;
-    uvw[2] = (d00 * d21 - d01 * d20) / denom;
-    uvw[0] = 1.0 - uvw[1] - uvw[2];
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -76,11 +57,10 @@ double Basis::grad_gmapping(const Eigen::Vector3d& bc) const
     return cross(v1 - v0, v2 - v0).norm();
 }
 
-void Basis::build_bases(
-    const Eigen::MatrixXd& V,
-    const Eigen::MatrixXi& F,
-    std::vector<Basis>& bases)
+std::vector<Basis>
+Basis::build_bases(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F)
 {
+    std::vector<Basis> bases;
     for (int fi = 0; fi < F.rows(); fi++) {
         bases.emplace_back();
         bases.back().loc_2_glob = F.row(fi);
@@ -88,6 +68,7 @@ void Basis::build_bases(
         bases.back().v1 = V.row(F(fi, 1));
         bases.back().v2 = V.row(F(fi, 2));
     }
+    return bases;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -138,18 +119,32 @@ Eigen::SparseMatrix<double> compute_mass_mat(
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void eval_phi_j(
+std::tuple<Eigen::MatrixXd, Eigen::MatrixXd> build_rays(
+    const Eigen::MatrixXd& V,
+    const Eigen::MatrixXi& F,
     const std::vector<Basis>& bases,
-    const size_t index,
-    const Eigen::Vector2d& x,
-    std::vector<std::pair<size_t, double>>& out)
+    const Eigen::MatrixXd& quadrature_points)
 {
-    const Basis& basis = bases[index];
-    out.clear();
-    out.reserve(basis.n_bases);
-    for (int i = 0; i < basis.n_bases; i++) {
-        out.emplace_back(basis.loc_2_glob(i), basis.phi(i)(x));
+    Eigen::MatrixXd N;
+    igl::per_vertex_normals(V, F, N);
+
+    Eigen::MatrixXd origins(bases.size() * 3 * quadrature_points.rows(), 3);
+    Eigen::MatrixXd rays(origins.rows(), origins.cols());
+    int ray_i = 0;
+    for (const auto& basis : bases) {
+        for (int i = 0; i < basis.n_bases; i++) {
+            for (int qi = 0; qi < quadrature_points.rows(); qi++) {
+                const Eigen::Vector3d& t = quadrature_points.row(qi);
+                origins.row(ray_i) = basis.gmapping(t);
+                rays.row(ray_i) = t[0] * N.row(basis.loc_2_glob(0))
+                    + t[1] * N.row(basis.loc_2_glob(1))
+                    + t[2] * N.row(basis.loc_2_glob(2));
+                ray_i++;
+            }
+        }
     }
+
+    return std::tuple<Eigen::MatrixXd, Eigen::MatrixXd>(origins, rays);
 }
 
 Eigen::SparseMatrix<double> compute_mass_mat_cross(
@@ -159,53 +154,59 @@ Eigen::SparseMatrix<double> compute_mass_mat_cross(
     const Eigen::MatrixXd& V_coll,
     const Eigen::MatrixXi& F_coll,
     const std::vector<Basis>& coll_bases,
+    const std::function<Eigen::MatrixXd(
+        const Eigen::MatrixXd&,
+        const Eigen::MatrixXd&,
+        const Eigen::MatrixXd&,
+        const Eigen::MatrixXi)> closest_points,
     const Quadrature& quadrature)
 {
     std::vector<Eigen::Triplet<double>> tripets;
 
-    Eigen::MatrixXd N_coll;
-    igl::per_vertex_normals(V_coll, F_coll, N_coll);
+    ///////////////////////////////////////////////////////////////////////////
 
-    Eigen::MatrixXd origins(
-        coll_bases.size() * 3 * quadrature.points.rows(), 3);
-    Eigen::MatrixXd rays(origins.rows(), origins.cols());
+    std::cout << "Computing rays" << std::endl;
+    auto origins_and_rays =
+        build_rays(V_coll, F_coll, coll_bases, quadrature.points);
+    const auto& [origins, rays] = origins_and_rays;
 
-    size_t ray_i = 0;
-    for (const Basis& basis : coll_bases) {
-        for (int i = 0; i < basis.n_bases; i++) {
-            for (int qi = 0; qi < quadrature.points.rows(); qi++) {
-                const Eigen::Vector3d& t = quadrature.point(qi);
-                origins.row(ray_i) = basis.gmapping(t);
-                rays.row(ray_i) = t[0] * N_coll.row(basis.loc_2_glob(0))
-                    + t[1] * N_coll.row(basis.loc_2_glob(1))
-                    + t[2] * N_coll.row(basis.loc_2_glob(2));
-                ray_i++;
-            }
-        }
-    }
+    ///////////////////////////////////////////////////////////////////////////
 
+    std::cout << "Computing closest_points" << std::endl;
     Eigen::MatrixX3d ids_and_coords =
-        igl::embree::line_mesh_intersection(origins, rays, V_fem, F_fem);
+        closest_points(origins, rays, V_fem, F_fem);
 
-    ray_i = 0;
-    for (const Basis& basis : coll_bases) {
-        for (int i = 0; i < basis.n_bases; i++) {
+    ///////////////////////////////////////////////////////////////////////////
+
+    std::cout << "Evaluating bases" << std::endl;
+    int query = 0;
+    for (const Basis& basis_i : coll_bases) {
+        for (int i = 0; i < basis_i.n_bases; i++) {
             std::unordered_map<size_t, double> others;
 
             for (int qi = 0; qi < quadrature.points.rows(); qi++) {
                 const Eigen::Vector3d& t = quadrature.point(qi);
                 const double w = quadrature.weight(qi);
 
-                std::vector<std::pair<size_t, double>> bb;
-                eval_phi_j(
-                    fem_bases, int(ids_and_coords(ray_i, 0)),
-                    ids_and_coords.row(ray_i).tail<2>(), bb);
-                ray_i++;
+                // evaluate ϕᵢ
+                const Eigen::Vector2d x_i = t.tail<2>();
+                const double phi_i = basis_i.phi(i)(x_i);
 
-                const double phi_i = basis.phi(i)(t.tail<2>());
-                for (const auto& [j, phi_j] : bb) {
-                    double val = w * phi_i * phi_j * basis.grad_gmapping(t);
+                // Get the basis for j
+                const int index = int(ids_and_coords(query, 0));
+                if (index < 0 || index >= fem_bases.size()) {
+                    throw std::runtime_error("invalid index");
+                }
+                const Basis& basis_j = fem_bases[index];
+                const Eigen::Vector2d x_j = ids_and_coords.row(query).tail<2>();
+                query++;
 
+                // Evaluate ϕⱼ
+                for (int loc_j = 0; loc_j < basis_j.n_bases; loc_j++) {
+                    double phi_j = basis_j.phi(loc_j)(x_j);
+                    double val = w * phi_i * phi_j * basis_i.grad_gmapping(t);
+
+                    int j = basis_j.loc_2_glob(loc_j);
                     auto got = others.find(j);
                     if (got == others.end()) {
                         others[j] = val;
@@ -216,64 +217,16 @@ Eigen::SparseMatrix<double> compute_mass_mat_cross(
             }
 
             for (const auto& [j, val] : others) {
-                tripets.emplace_back(basis.loc_2_glob(i), j, val);
+                tripets.emplace_back(basis_i.loc_2_glob(i), j, val);
             }
         }
     }
 
+    std::cout << "Building matrix" << std::endl;
     Eigen::SparseMatrix<double> A;
     A.resize(V_coll.rows(), V_fem.rows());
     A.setFromTriplets(tripets.begin(), tripets.end());
     return A;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-Eigen::SparseMatrix<double> compute_L2_projection_weights(
-    const Eigen::MatrixXd& V_fem,
-    const Eigen::MatrixXi& F_fem,
-    const Eigen::MatrixXd& V_coll,
-    const Eigen::MatrixXi& F_coll,
-    bool lump_mass_matrix)
-{
-    Quadrature quadrature;
-
-    std::vector<Basis> fem_bases, coll_bases;
-    Basis::build_bases(V_fem, F_fem, fem_bases);
-    Basis::build_bases(V_coll, F_coll, coll_bases);
-
-    Eigen::SparseMatrix<double> M =
-        compute_mass_mat(V_coll.rows(), coll_bases, quadrature);
-
-    if (lump_mass_matrix) {
-        Eigen::VectorXd lumped_values = Eigen::VectorXd::Zero(M.rows());
-        for (int k = 0; k < M.outerSize(); ++k) {
-            for (Eigen::SparseMatrix<double>::InnerIterator it(M, k); it;
-                 ++it) {
-                lumped_values(it.row()) += it.value();
-            }
-        }
-        M.setZero();
-        M = lumped_values.asDiagonal();
-    }
-
-    Eigen::SparseMatrix<double> A = compute_mass_mat_cross(
-        V_fem, F_fem, fem_bases, V_coll, F_coll, coll_bases, quadrature);
-
-    Eigen::SparseLU<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>>
-        solver;
-    // Compute the ordering permutation vector from the structural pattern of
-    solver.analyzePattern(M);
-    // Compute the numerical factorization
-    solver.factorize(M);
-
-    if (solver.info() != Eigen::Success) {
-        Eigen::saveMarket(M, "mass_matrix.mtx");
-        throw std::runtime_error("Unable to factorize mass matrix");
-    }
-
-    // Use the factors to solve the linear system
-    Eigen::SparseMatrix<double> W = solver.solve(A);
-
-    return W;
-}
+} // namespace L2
