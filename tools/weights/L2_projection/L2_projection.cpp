@@ -98,9 +98,7 @@ Eigen::SparseMatrix<double> compute_mass_mat(
                 for (int qi = 0; qi < quadrature.points.rows(); qi++) {
                     const Eigen::Vector3d& t = quadrature.point(qi);
                     const double w = quadrature.weight(qi);
-                    Eigen::Vector2d x = t[0] * Eigen::Vector2d(0, 0)
-                        + t[1] * Eigen::Vector2d(1, 0)
-                        + t[2] * Eigen::Vector2d(0, 1);
+                    Eigen::Vector2d x = t.tail<2>();
                     val += w * basis.phi(i)(x) * basis.phi(j)(x)
                         * basis.grad_gmapping(t);
                 }
@@ -204,6 +202,7 @@ Eigen::SparseMatrix<double> compute_mass_mat_cross(
                 // Evaluate ϕⱼ
                 for (int loc_j = 0; loc_j < basis_j.n_bases; loc_j++) {
                     double phi_j = basis_j.phi(loc_j)(x_j);
+                    // what about basis_j.grad_gmapping(t)
                     double val = w * phi_i * phi_j * basis_i.grad_gmapping(t);
 
                     int j = basis_j.loc_2_glob(loc_j);
