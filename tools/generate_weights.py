@@ -37,6 +37,8 @@ def compute_pseudoinverse(W, tol=1e-6):
     Winv = scipy.sparse.csc_matrix(Winv)
     eliminate_near_zeros(Winv)
 
+    print(np.linalg.norm((W @ Winv @ W - W).A))
+
     return Winv
 
 
@@ -141,6 +143,10 @@ def main():
     if args.force_recompute or not hdf5_path.exists():
         Winv = compute_W(BV_fine, BF_fine, V_fine, F_fine, BV2V_fine,
                          BV_coarse, BF_coarse, args.method)
+        # W_full = compute_W(BV_coarse, BF_coarse, V_coarse, F_coarse, BV2V_coarse,
+        #                    V_fine, F_fine, args.method)
+        # Winv = compute_pseudoinverse(W_full)[BV2V_coarse]
+
         print(f"Saving W⁻¹ to {hdf5_path}")
         save_weights(hdf5_path, Winv)
     else:
@@ -148,9 +154,11 @@ def main():
         Winv = scipy.sparse.csc_matrix(load_weights(hdf5_path))
 
     print(f"\ndensity(W)={density(W)} density(W⁻¹)={density(Winv)}")
+    print(f"\nW.nnz={W.nnz} W⁻¹.nnz={Winv.nnz}")
 
     # Checks error of mapping
     print("W   Error:", np.linalg.norm(W @ V_coarse - BV_fine, np.inf))
+    # print("W⁻¹ Error:", np.linalg.norm(Winv_ @ V_fine - BV_coarse, np.inf))
     print("W⁻¹ Error:", np.linalg.norm(Winv @ V_fine - BV_coarse, np.inf))
 
 

@@ -14,16 +14,16 @@
     }],
     "body_params": [{
         "id": 1,
-        "E": 1e5,
-        "nu": 0.2,
-        "rho": 1000
+        "E": 1e2,
+        "nu": 0.3,
+        "rho": 1
     }],
     "collision_mesh": {
         "mesh": "../../meshes/gargoyle/gargoyle-coarse.ply",
-        "linear_map": "../../weights/barycentric/gargoyle-to-gargoyle-coarse.hdf5"
+        "linear_map": "../../weights/mean_value/gargoyle-to-gargoyle-coarse.hdf5"
     },
     "obstacles": [{
-        "mesh": "../../meshes/plane.obj",
+        "mesh": "../../meshes/obstacles/plane.obj",
         "position": [-5, -3, 2],
         "rotation": [0, 0, 0],
         "dimensions": [10, 0, 10]
