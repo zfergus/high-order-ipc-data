@@ -73,7 +73,7 @@ def main():
         out_weight = (root_dir / "weights" / "higher_order" /
                       f"{args.mesh.stem}-P{args.order}.hdf5")
     else:
-        V_col = meshio.read(args.collision_mesh).points
+        V_col = meshio.read(args.collision_mesh).points.astype(float)
         Phi = compute_barycentric_weights(
             V_col, fe_mesh.V_HO, fe_mesh.T, fe_mesh.T_HO,
             order=fe_mesh.order)

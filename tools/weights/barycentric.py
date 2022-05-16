@@ -9,6 +9,7 @@ from aabbtree import AABB, AABBTree
 from .bases import hat_phis_3D
 from .point_triangle_distance import pointTriangleDistance
 from .utils import quiet_tqdm, labeled_tqdm
+from mesh.utils import boundary_to_full
 
 
 def distance_to_tet(p, tet, bc):

@@ -1,13 +1,9 @@
 import itertools
 import numpy as np
 
-import sys
-import pathlib
-
 import igl
 
-sys.path.append(str(pathlib.Path(__file__).parents[1] / "weights"))
-from bases import edges_3D_order, faces_3D_order  # noqa
+from weights.bases import edges_3D_order, faces_3D_order  # noqa
 
 
 def sorted_tuple(vals):

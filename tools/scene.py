@@ -1,3 +1,5 @@
+"""Combines multiple weights and collision meshes into one."""
+
 import argparse
 import pathlib
 import json
