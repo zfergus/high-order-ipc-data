@@ -1,23 +1,8 @@
 import numpy as np
 import scipy.sparse
 
-from .utils import *
-
-
-hat_phis = {
-    1: [lambda x: 1 - x, lambda x: x],
-    2: [
-        lambda x: 2 * (x - 0.5) * (x - 1),
-        lambda x: 2 * (x - 0) * (x - 0.5),
-        lambda x: -4 * (x - 0.5)**2 + 1
-    ],
-    3: [
-        lambda x: -9 / 2 * (x - 1 / 3) * (x - 2 / 3) * (x - 1),
-        lambda x: 9 / 2 * (x - 0) * (x - 1 / 3) * (x - 2 / 3),
-        lambda x: 27 / 2 * (x - 0) * (x - 2 / 3) * (x - 1),
-        lambda x: -27 / 2 * (x - 0) * (x - 1 / 3) * (x - 1),
-    ]
-}
+from .bases import hat_phis_1D
+from mesh.utils import faces_to_edges
 
 
 def build_phi_2D(num_nodes, num_vertices, E_boundary, E_boundary_to_E_full,
@@ -57,7 +42,7 @@ def build_phi_2D(num_nodes, num_vertices, E_boundary, E_boundary_to_E_full,
         nodes = vertex_nodes + edge_nodes
 
         for i in range(order + 1):
-            val = hat_phis[order][i](alpha)
+            val = hat_phis_1D[order][i](alpha)
             ind = nodes[i]
             phi[start_vi:(start_vi + delta_vi), ind] = val
 

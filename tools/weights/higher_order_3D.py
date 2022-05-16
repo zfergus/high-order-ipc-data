@@ -6,37 +6,9 @@ import trimesh
 
 import igl
 
-from .utils import *
-
-
-hat_phis = {
-    1: [
-        lambda x, y: -x - y + 1,
-        lambda x, y: x,
-        lambda x, y: y
-    ],
-    2: [
-        lambda x, y: (x + y - 1) * (2 * x + 2 * y - 1),
-        lambda x, y: x * (2 * x - 1),
-        lambda x, y: y * (2 * y - 1),
-        lambda x, y: -4 * x * (x + y - 1),
-        lambda x, y: 4 * x * y,
-        lambda x, y: -4 * y * (x + y - 1),
-    ],
-    3: [
-        lambda x, y: (-27.0 / 2.0 * x**2 * y + 9 * x**2 - 27.0 / 2.0 * y**2 * x + 9 * y**2 -
-                      9.0 / 2.0 * x**3 + 18 * x * y - 11.0 / 2.0 * x - 9.0 / 2.0 * y**3 - 11.0 / 2.0 * y + 1),
-        lambda x, y: (1.0 / 2.0) * x * (9 * x**2 - 9 * x + 2),
-        lambda x, y: (1.0 / 2.0) * y * (9 * y**2 - 9 * y + 2),
-        lambda x, y: (9.0 / 2.0) * x * (x + y - 1) * (3 * x + 3 * y - 2),
-        lambda x, y: -9.0 / 2.0 * x * (3 * x**2 + 3 * x * y - 4 * x - y + 1),
-        lambda x, y: (9.0 / 2.0) * x * y * (3 * x - 1),
-        lambda x, y: (9.0 / 2.0) * x * y * (3 * y - 1),
-        lambda x, y: (9.0 / 2.0) * y * (x + y - 1) * (3 * x + 3 * y - 2),
-        lambda x, y: -9.0 / 2.0 * y * (3 * x * y - x + 3 * y**2 - 4 * y + 1),
-        lambda x, y: -27 * x * y * (x + y - 1),
-    ]
-}
+from .bases import hat_phis_2D
+from .utils import labeled_tqdm
+from mesh.utils import faces_to_edges
 
 
 def regular_2D_grid(n):
@@ -131,7 +103,7 @@ def build_phi_3D(num_vertices, num_edges, V, BF_in, BF2F, F2E, order, div_per_ed
 
         # evaluate ϕᵢ on the face nodes
         for i, node_i in enumerate(nodes):
-            phi[rows, node_i] = hat_phis[order][i](alphas, betas)
+            phi[rows, node_i] = hat_phis_2D[order][i](alphas, betas)
 
     phi = phi.tocsc()
     V_col = phi @ V

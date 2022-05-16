@@ -1,6 +1,5 @@
 import sys
 import pathlib
-from collections import namedtuple
 
 import numpy
 import scipy.sparse
@@ -10,7 +9,6 @@ import quadpy
 import trimesh
 import igl
 
-from distutils.command.build import build
 import sys
 import pathlib
 

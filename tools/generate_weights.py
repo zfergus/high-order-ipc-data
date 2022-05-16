@@ -44,6 +44,7 @@ def compute_pseudoinverse(W, tol=1e-6):
 
 def remove_unreferenced_vertices(mesh, filename=None):
     V = mesh.points
+    assert(len(mesh.cells) == 1)
     F = mesh.cells[0].data.astype(int)
     # Removed unreferenced vertices
     V, F, _, J = igl.remove_unreferenced(V, F)
@@ -55,7 +56,7 @@ def remove_unreferenced_vertices(mesh, filename=None):
     if filename is not None and unref_removed != 0:
         print(f"Saving unreference free mesh to {filename}")
         if filename.suffix == ".msh":
-            mesh.write(filename, file_format="gmsh")
+            mesh.write(filename, file_format="gmsh22")
         else:
             mesh.write(filename)
     return J
@@ -66,7 +67,7 @@ def parse_args():
     parser.add_argument('coarse_mesh', type=pathlib.Path)
     parser.add_argument('fine_mesh', type=pathlib.Path)
     parser.add_argument('-m,--method', dest="method",
-                        default="BC", choices=["BC", "MVC", "L2"])
+                        default="BC", choices=["BC", "MVC", "L2", "identity"])
     parser.add_argument('-f,--force-recompute', action="store_true",
                         default=False, dest="force_recompute")
     return parser.parse_args()
@@ -75,11 +76,13 @@ def parse_args():
 def read_mesh(filename):
     print(f"Loading {filename}")
     mesh = meshio.read(filename)
-    remove_unreferenced_vertices(mesh, filename)
-    assert(len(mesh.cells) == 1)
-    assert(mesh.cells[0].type == "tetra")  # Tet mesh
+    # remove_unreferenced_vertices(mesh, filename)
     V = mesh.points
-    F = mesh.cells[0].data.astype(int)
+    F = []
+    for cells in mesh.cells:
+        assert(cells.type == "tetra")  # Tet mesh
+        F.append(cells.data.astype(int))
+    F = np.vstack(F)
 
     BF = igl.boundary_facets(F)
     bmesh = meshio.Mesh(V, [("triangle", BF)])
@@ -99,8 +102,14 @@ def compute_W(BV_from, BF_from, V_from, F_from, BV2V_from,
     elif method == "L2":
         W = compute_L2_projection_weights(
             BV_to, BF_to, BV_from, BF_from, lump_mass_matrix=False)
-        W_full = np.zeros([BV_to.shape[0], V_from.shape[0]])
-        W_full[:, BV2V_from] = W.A
+        W_full = scipy.sparse.lil_matrix((BV_to.shape[0], V_from.shape[0]))
+        W_full[:, BV2V_from] = W
+        W = W_full
+    elif method == "identity":
+        assert(BV_from.shape == BV_to.shape)
+        W = scipy.sparse.eye(BV_from.shape[0])
+        W_full = scipy.sparse.lil_matrix((BV_to.shape[0], V_from.shape[0]))
+        W_full[:, BV2V_from] = W
         W = W_full
 
     W = scipy.sparse.csc_matrix(W)
@@ -120,7 +129,8 @@ def main():
     print()
 
     root = pathlib.Path(__file__).parents[1]
-    method2dir = {"MVC": "mean_value", "BC": "barycentric", "L2": "L2"}
+    method2dir = {"MVC": "mean_value", "BC": "barycentric",
+                  "L2": "L2", "identity": "identity"}
     out_dir = pathlib.Path(root / "weights" / method2dir[args.method])
     out_dir.mkdir(exist_ok=True, parents=True)
 
