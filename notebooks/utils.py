@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from tqdm import tqdm
 
 def pow(x, n):
     if type(x) is np.array or type(x) is np.ndarray or type(x) is np.float64:
@@ -351,3 +352,42 @@ def gmapping(order, uv, pts):
                 res[:, d] += pts[rr[i], d] * bb
 
     return res
+
+
+
+
+def gmapping_energy(order, uv, pts, target):
+    img_p = gmapping(order, uv, pts)
+
+    if type(pts) is np.array or type(pts) is np.ndarray:
+        return np.linalg.norm(img_p - target)**2;
+    else:
+        return torch.norm(img_p - target)**2
+
+
+def inver_gmapping(order, uv0, pts, target, eps=1e-10):
+    tuv0 = torch.tensor(uv0, requires_grad=True, dtype = torch.float64)
+    tpts = torch.tensor(pts, dtype = torch.float64)
+    tt = torch.tensor(target, dtype = torch.float64)
+
+    optimizer = torch.torch.optim.LBFGS([tuv0],
+                              lr=0.1,
+                              history_size=20,
+                              max_iter=10,
+                              line_search_fn="strong_wolfe")
+
+    f = lambda uv: gmapping_energy(order, uv, tpts, tt)
+    vv = []
+
+    for i in tqdm(range(1000)):
+        optimizer.zero_grad()
+        objective = f(tuv0)
+        objective.backward()
+        optimizer.step(lambda: f(tuv0))
+        vv.append(objective.item())
+
+        if objective.item() < eps:
+            break
+
+
+    return tuv0.detach().numpy(), vv
