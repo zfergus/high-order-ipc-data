@@ -1,0 +1,44 @@
+{
+    "default_params": "../defaults.json",
+    "discr_order": 2,
+    "problem_params": {
+        "initial_velocity": [{
+            "id": 1,
+            "value": [67, 0, 0]
+        }],
+        "rhs": [0, 0, 0]
+    },
+    "bc_method": "sample",
+    "solver_params": {
+        "gradNorm": 1e-12,
+        "useGradNorm": true
+    },
+    "tend": 4e-3,
+    "dt": 2e-5,
+    "#time_integrator": "BDF",
+    "#time_integrator_params": {
+        "num_steps": 2
+    },
+    "dhat": 0.0000692820323,
+    "meshes": [{
+        "mesh": "../../meshes/sphere/sphere-coarse.msh",
+        "scale": 0.04,
+        "body_id": 1
+    }],
+    "body_params": [{
+        "id": 1,
+        "E": 1e7,
+        "nu": 0.45,
+        "rho": 1150
+    }],
+    "collision_mesh": {
+        "mesh": "../../meshes/sphere/sphere-fine.ply",
+        "linear_map": "../../weights/higher_order/sphere-coarse-P2-to-sphere-fine.hdf5"
+    },
+    "obstacles": [{
+        "mesh": "../../meshes/obstacles/plane.obj",
+        "position": [0.105, 0, 0],
+        "rotation": [0, 0, 90],
+        "dimensions": [0.4, 0, 0.4]
+    }]
+}
