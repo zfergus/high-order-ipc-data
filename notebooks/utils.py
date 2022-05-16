@@ -1,5 +1,11 @@
 import numpy as np
+import torch
 
+def pow(x, n):
+    if type(x) is np.array or type(x) is np.ndarray or type(x) is np.float64:
+        return np.power(x,n)
+    else:
+        return torch.pow(x,n)
 
 def remapping(order):
     if order == 3:
@@ -8,26 +14,31 @@ def remapping(order):
         return [0,1,2,3,  4,5,6,  7,8,9,  10,11,12,  15,14,13,  21,20,19,  18,17,16,      22,23,24,  25,27,26,  32,31,33, 30,29,28,   34]
 
 def p3(local_index, uv):
-    x = uv[:, 0]
-    y = uv[:, 1]
-    z = uv[:, 2]
+    if len(uv.shape) == 2:
+        x = uv[:, 0]
+        y = uv[:, 1]
+        z = uv[:, 2]
+    else:
+        x = uv[0]
+        y = uv[1]
+        z = uv[2]
 
     if local_index == 0:
         helper_0 = 18*x;
         helper_1 = y*z;
-        helper_2 = np.power(x, 2);
-        helper_3 = np.power(y, 2);
-        helper_4 = np.power(z, 2);
+        helper_2 = pow(x, 2);
+        helper_3 = pow(y, 2);
+        helper_4 = pow(z, 2);
         helper_5 = (27.0/2.0)*x;
         helper_6 = (27.0/2.0)*y;
         helper_7 = (27.0/2.0)*z;
-        result_0 = helper_0*y + helper_0*z - 27*helper_1*x + 18*helper_1 - helper_2*helper_6 - helper_2*helper_7 + 9*helper_2 - helper_3*helper_5 - helper_3*helper_7 + 9*helper_3 - helper_4*helper_5 - helper_4*helper_6 + 9*helper_4 - 9.0/2.0*np.power(x, 3) - 11.0/2.0*x - 9.0/2.0*np.power(y, 3) - 11.0/2.0*y - 9.0/2.0*np.power(z, 3) - 11.0/2.0*z + 1
+        result_0 = helper_0*y + helper_0*z - 27*helper_1*x + 18*helper_1 - helper_2*helper_6 - helper_2*helper_7 + 9*helper_2 - helper_3*helper_5 - helper_3*helper_7 + 9*helper_3 - helper_4*helper_5 - helper_4*helper_6 + 9*helper_4 - 9.0/2.0*pow(x, 3) - 11.0/2.0*x - 9.0/2.0*pow(y, 3) - 11.0/2.0*y - 9.0/2.0*pow(z, 3) - 11.0/2.0*z + 1
     elif local_index == 1:
-        result_0 = (1.0/2.0)*x*(9*np.power(x, 2) - 9*x + 2)
+        result_0 = (1.0/2.0)*x*(9*pow(x, 2) - 9*x + 2)
     elif local_index == 2:
-        result_0 = (1.0/2.0)*y*(9*np.power(y, 2) - 9*y + 2)
+        result_0 = (1.0/2.0)*y*(9*pow(y, 2) - 9*y + 2)
     elif local_index == 3:
-        result_0 = (1.0/2.0)*z*(9*np.power(z, 2) - 9*z + 2)
+        result_0 = (1.0/2.0)*z*(9*pow(z, 2) - 9*z + 2)
     elif local_index == 4:
         result_0 = (9.0/2.0)*x*(x + y + z - 1)*(3*x + 3*y + 3*z - 2)
     elif local_index == 5:
@@ -39,14 +50,14 @@ def p3(local_index, uv):
         result_0 = (9.0/2.0)*x*y*(3*y - 1)
     elif local_index == 8:
         helper_0 = 3*y
-        result_0 = -9.0/2.0*y*(helper_0*x + helper_0*z - x + 3*np.power(y, 2) - 4*y - z + 1)
+        result_0 = -9.0/2.0*y*(helper_0*x + helper_0*z - x + 3*pow(y, 2) - 4*y - z + 1)
     elif local_index == 9:
         result_0 = (9.0/2.0)*y*(x + y + z - 1)*(3*x + 3*y + 3*z - 2)
     elif local_index == 10:
         result_0 = (9.0/2.0)*z*(x + y + z - 1)*(3*x + 3*y + 3*z - 2)
     elif local_index == 11:
         helper_0 = 3*z;
-        result_0 = -9.0/2.0*z*(helper_0*x + helper_0*y - x - y + 3*np.power(z, 2) - 4*z + 1)
+        result_0 = -9.0/2.0*z*(helper_0*x + helper_0*y - x - y + 3*pow(z, 2) - 4*z + 1)
     elif local_index == 12:
         result_0 = (9.0/2.0)*x*z*(3*x - 1)
     elif local_index == 13:
@@ -73,115 +84,120 @@ def p3(local_index, uv):
 
 
 def p4(local_index, uv):
-    x = uv[:, 0]
-    y = uv[:, 1]
-    z = uv[:, 2]
+    if len(uv.shape) == 2:
+        x = uv[:, 0]
+        y = uv[:, 1]
+        z = uv[:, 2]
+    else:
+        x = uv[0]
+        y = uv[1]
+        z = uv[2]
 
 
     if local_index == 0:
         helper_0 = x + y + z - 1
         helper_1 = x*y
-        helper_2 = np.power(y, 2)
+        helper_2 = pow(y, 2)
         helper_3 = 9*x
-        helper_4 = np.power(z, 2)
-        helper_5 = np.power(x, 2)
+        helper_4 = pow(z, 2)
+        helper_5 = pow(x, 2)
         helper_6 = 9*y
         helper_7 = 9*z
         helper_8 = 26*helper_0
         helper_9 = helper_8*z
-        helper_10 = 13*np.power(helper_0, 2)
+        helper_10 = 13*pow(helper_0, 2)
         helper_11 = 13*helper_0
-        result_0 = (1.0/3.0)*helper_0*(3*np.power(helper_0, 3) + helper_1*helper_8 + 18*helper_1*z + helper_10*x + helper_10*y + helper_10*z + helper_11*helper_2 + helper_11*helper_4 + helper_11*helper_5 + helper_2*helper_3 + helper_2*helper_7 + helper_3*helper_4 + helper_4*helper_6 + helper_5*helper_6 + helper_5*helper_7 + helper_9*x + helper_9*y + 3*np.power(x, 3) + 3*np.power(y, 3) + 3*np.power(z, 3))
+        result_0 = (1.0/3.0)*helper_0*(3*pow(helper_0, 3) + helper_1*helper_8 + 18*helper_1*z + helper_10*x + helper_10*y + helper_10*z + helper_11*helper_2 + helper_11*helper_4 + helper_11*helper_5 + helper_2*helper_3 + helper_2*helper_7 + helper_3*helper_4 + helper_4*helper_6 + helper_5*helper_6 + helper_5*helper_7 + helper_9*x + helper_9*y + 3*pow(x, 3) + 3*pow(y, 3) + 3*pow(z, 3))
     elif local_index == 1:
-        result_0 = (1.0/3.0)*x*(32*np.power(x, 3) - 48*np.power(x, 2) + 22*x - 3)
+        result_0 = (1.0/3.0)*x*(32*pow(x, 3) - 48*pow(x, 2) + 22*x - 3)
     elif local_index == 2:
-        result_0 = (1.0/3.0)*y*(32*np.power(y, 3) - 48*np.power(y, 2) + 22*y - 3)
+        result_0 = (1.0/3.0)*y*(32*pow(y, 3) - 48*pow(y, 2) + 22*y - 3)
     elif local_index == 3:
-        result_0 = (1.0/3.0)*z*(32*np.power(z, 3) - 48*np.power(z, 2) + 22*z - 3)
+        result_0 = (1.0/3.0)*z*(32*pow(z, 3) - 48*pow(z, 2) + 22*z - 3)
     elif local_index == 4:
         helper_0 = 36*x
         helper_1 = y*z
-        helper_2 = np.power(x, 2)
-        helper_3 = np.power(y, 2)
-        helper_4 = np.power(z, 2)
+        helper_2 = pow(x, 2)
+        helper_3 = pow(y, 2)
+        helper_4 = pow(z, 2)
         helper_5 = 24*x
         helper_6 = 24*y
         helper_7 = 24*z
-        result_0 = -16.0/3.0*x*(-helper_0*y - helper_0*z + 48*helper_1*x - 36*helper_1 + helper_2*helper_6 + helper_2*helper_7 - 18*helper_2 + helper_3*helper_5 + helper_3*helper_7 - 18*helper_3 + helper_4*helper_5 + helper_4*helper_6 - 18*helper_4 + 8*np.power(x, 3) + 13*x + 8*np.power(y, 3) + 13*y + 8*np.power(z, 3) + 13*z - 3)
+        result_0 = -16.0/3.0*x*(-helper_0*y - helper_0*z + 48*helper_1*x - 36*helper_1 + helper_2*helper_6 + helper_2*helper_7 - 18*helper_2 + helper_3*helper_5 + helper_3*helper_7 - 18*helper_3 + helper_4*helper_5 + helper_4*helper_6 - 18*helper_4 + 8*pow(x, 3) + 13*x + 8*pow(y, 3) + 13*y + 8*pow(z, 3) + 13*z - 3)
     elif local_index == 5:
         helper_0 = 2*y
         helper_1 = 2*z
         helper_2 = x + y + z - 1
         helper_3 = helper_2*x
-        result_0 = 4*helper_3*(-helper_0*helper_2 + helper_0*x - helper_0*z - helper_1*helper_2 + helper_1*x + 3*np.power(helper_2, 2) + 10*helper_3 + 3*np.power(x, 2) - np.power(y, 2) - np.power(z, 2))
+        result_0 = 4*helper_3*(-helper_0*helper_2 + helper_0*x - helper_0*z - helper_1*helper_2 + helper_1*x + 3*pow(helper_2, 2) + 10*helper_3 + 3*pow(x, 2) - pow(y, 2) - pow(z, 2))
     elif local_index == 6:
         helper_0 = 6*x
-        helper_1 = np.power(x, 2)
+        helper_1 = pow(x, 2)
         helper_2 = 8*helper_1
-        result_0 = -16.0/3.0*x*(-helper_0*y - helper_0*z - 14*helper_1 + helper_2*y + helper_2*z + 8*np.power(x, 3) + 7*x + y + z - 1)
+        result_0 = -16.0/3.0*x*(-helper_0*y - helper_0*z - 14*helper_1 + helper_2*y + helper_2*z + 8*pow(x, 3) + 7*x + y + z - 1)
     elif local_index == 7:
-        result_0 = (16.0/3.0)*x*y*(8*np.power(x, 2) - 6*x + 1)
+        result_0 = (16.0/3.0)*x*y*(8*pow(x, 2) - 6*x + 1)
     elif local_index == 8:
         helper_0 = 4*x
         result_0 = helper_0*y*(-helper_0 + 16*x*y - 4*y + 1)
     elif local_index == 9:
-        result_0 = (16.0/3.0)*x*y*(8*np.power(y, 2) - 6*y + 1)
+        result_0 = (16.0/3.0)*x*y*(8*pow(y, 2) - 6*y + 1)
     elif local_index == 10:
         helper_0 = 6*y
-        helper_1 = np.power(y, 2)
+        helper_1 = pow(y, 2)
         helper_2 = 8*helper_1
-        result_0 = -16.0/3.0*y*(-helper_0*x - helper_0*z - 14*helper_1 + helper_2*x + helper_2*z + x + 8*np.power(y, 3) + 7*y + z - 1)
+        result_0 = -16.0/3.0*y*(-helper_0*x - helper_0*z - 14*helper_1 + helper_2*x + helper_2*z + x + 8*pow(y, 3) + 7*y + z - 1)
     elif local_index == 11:
         helper_0 = 2*y
         helper_1 = 2*x
         helper_2 = x + y + z - 1
         helper_3 = helper_2*y
-        result_0 = -4*helper_3*(-helper_0*x - helper_0*z + helper_1*helper_2 + helper_1*z - 3*np.power(helper_2, 2) + 2*helper_2*z - 10*helper_3 + np.power(x, 2) - 3*np.power(y, 2) + np.power(z, 2))
+        result_0 = -4*helper_3*(-helper_0*x - helper_0*z + helper_1*helper_2 + helper_1*z - 3*pow(helper_2, 2) + 2*helper_2*z - 10*helper_3 + pow(x, 2) - 3*pow(y, 2) + pow(z, 2))
     elif local_index == 12:
         helper_0 = 36*x
         helper_1 = y*z
-        helper_2 = np.power(x, 2)
-        helper_3 = np.power(y, 2)
-        helper_4 = np.power(z, 2)
+        helper_2 = pow(x, 2)
+        helper_3 = pow(y, 2)
+        helper_4 = pow(z, 2)
         helper_5 = 24*x
         helper_6 = 24*y
         helper_7 = 24*z
-        result_0 = -16.0/3.0*y*(-helper_0*y - helper_0*z + 48*helper_1*x - 36*helper_1 + helper_2*helper_6 + helper_2*helper_7 - 18*helper_2 + helper_3*helper_5 + helper_3*helper_7 - 18*helper_3 + helper_4*helper_5 + helper_4*helper_6 - 18*helper_4 + 8*np.power(x, 3) + 13*x + 8*np.power(y, 3) + 13*y + 8*np.power(z, 3) + 13*z - 3)
+        result_0 = -16.0/3.0*y*(-helper_0*y - helper_0*z + 48*helper_1*x - 36*helper_1 + helper_2*helper_6 + helper_2*helper_7 - 18*helper_2 + helper_3*helper_5 + helper_3*helper_7 - 18*helper_3 + helper_4*helper_5 + helper_4*helper_6 - 18*helper_4 + 8*pow(x, 3) + 13*x + 8*pow(y, 3) + 13*y + 8*pow(z, 3) + 13*z - 3)
     elif local_index == 13:
         helper_0 = 36*x
         helper_1 = y*z
-        helper_2 = np.power(x, 2)
-        helper_3 = np.power(y, 2)
-        helper_4 = np.power(z, 2)
+        helper_2 = pow(x, 2)
+        helper_3 = pow(y, 2)
+        helper_4 = pow(z, 2)
         helper_5 = 24*x
         helper_6 = 24*y
         helper_7 = 24*z
-        result_0 = -16.0/3.0*z*(-helper_0*y - helper_0*z + 48*helper_1*x - 36*helper_1 + helper_2*helper_6 + helper_2*helper_7 - 18*helper_2 + helper_3*helper_5 + helper_3*helper_7 - 18*helper_3 + helper_4*helper_5 + helper_4*helper_6 - 18*helper_4 + 8*np.power(x, 3) + 13*x + 8*np.power(y, 3) + 13*y + 8*np.power(z, 3) + 13*z - 3)
+        result_0 = -16.0/3.0*z*(-helper_0*y - helper_0*z + 48*helper_1*x - 36*helper_1 + helper_2*helper_6 + helper_2*helper_7 - 18*helper_2 + helper_3*helper_5 + helper_3*helper_7 - 18*helper_3 + helper_4*helper_5 + helper_4*helper_6 - 18*helper_4 + 8*pow(x, 3) + 13*x + 8*pow(y, 3) + 13*y + 8*pow(z, 3) + 13*z - 3)
     elif local_index == 14:
         helper_0 = 2*x
         helper_1 = 2*z
         helper_2 = x + y + z - 1
         helper_3 = helper_2*z
-        result_0 = -4*helper_3*(helper_0*helper_2 + helper_0*y - helper_1*x - helper_1*y - 3*np.power(helper_2, 2) + 2*helper_2*y - 10*helper_3 + np.power(x, 2) + np.power(y, 2) - 3*np.power(z, 2))
+        result_0 = -4*helper_3*(helper_0*helper_2 + helper_0*y - helper_1*x - helper_1*y - 3*pow(helper_2, 2) + 2*helper_2*y - 10*helper_3 + pow(x, 2) + pow(y, 2) - 3*pow(z, 2))
     elif local_index == 15:
         helper_0 = 6*z
-        helper_1 = np.power(z, 2)
+        helper_1 = pow(z, 2)
         helper_2 = 8*helper_1
-        result_0 = -16.0/3.0*z*(-helper_0*x - helper_0*y - 14*helper_1 + helper_2*x + helper_2*y + x + y + 8*np.power(z, 3) + 7*z - 1)
+        result_0 = -16.0/3.0*z*(-helper_0*x - helper_0*y - 14*helper_1 + helper_2*x + helper_2*y + x + y + 8*pow(z, 3) + 7*z - 1)
     elif local_index == 16:
-        result_0 = (16.0/3.0)*x*z*(8*np.power(x, 2) - 6*x + 1)
+        result_0 = (16.0/3.0)*x*z*(8*pow(x, 2) - 6*x + 1)
     elif local_index == 17:
         helper_0 = 4*x
         result_0 = helper_0*z*(-helper_0 + 16*x*z - 4*z + 1)
     elif local_index == 18:
-        result_0 = (16.0/3.0)*x*z*(8*np.power(z, 2) - 6*z + 1)
+        result_0 = (16.0/3.0)*x*z*(8*pow(z, 2) - 6*z + 1)
     elif local_index == 19:
-        result_0 = (16.0/3.0)*y*z*(8*np.power(y, 2) - 6*y + 1)
+        result_0 = (16.0/3.0)*y*z*(8*pow(y, 2) - 6*y + 1)
     elif local_index == 20:
         helper_0 = 4*y
         result_0 = helper_0*z*(-helper_0 + 16*y*z - 4*z + 1)
     elif local_index == 21:
-        result_0 = (16.0/3.0)*y*z*(8*np.power(z, 2) - 6*z + 1)
+        result_0 = (16.0/3.0)*y*z*(8*pow(z, 2) - 6*z + 1)
     elif local_index == 22:
         result_0 = 32*x*y*(x + y + z - 1)*(4*x + 4*y + 4*z - 3)
     elif local_index == 23:
@@ -319,13 +335,19 @@ def sample_tet(nn):
 
 
 def gmapping(order, uv, pts):
-    res = np.zeros_like(uv)
+    if type(pts) is np.ndarray or type(pts) is np.array:
+        res = np.zeros_like(uv)
+    else:
+        res = torch.zeros_like(uv)
 
     rr = remapping(order)
 
     for i in range(pts.shape[0]):
         bb = p_eval(order, i, uv)
-        for d in range(3):
-            res[:, d] += pts[rr[i], d] * bb
+        if len(bb.shape) == 0:
+            res += pts[rr[i], :] * bb
+        else:
+            for d in range(3):
+                res[:, d] += pts[rr[i], d] * bb
 
     return res
