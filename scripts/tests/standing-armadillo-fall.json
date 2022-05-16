@@ -1,0 +1,33 @@
+{
+    "default_params": "../defaults.json",
+    "problem_params": {
+        "rhs": [0, 9.81, 0]
+    },
+    "tend": 5,
+    "time_steps": 50,
+    "mu": 0.1,
+    "friction_iterations": 20,
+    "meshes": [{
+        "mesh": "../../meshes/armadillo-standing/armadillo-hollow-coarser.msh",
+        "position": [0, 0.9, -0.5],
+        "rotation": [-0.1, -12, -10],
+        "body_id": 1
+    }],
+    "params": {
+        "id": 1,
+        "E": 2e11,
+        "nu": 0.4,
+        "#rho": 1000,
+        "rho": "/Users/pranav/decoupled/decoupled-contact/scripts/tests/rhos-standing-armadillo.txt"
+    },
+    "obstacles": [{
+        "mesh": "../../meshes/obstacles/plane.obj",
+        "position": [-0.5, 0, 0],
+        "rotation": [0, 0, 0],
+        "dimensions": [4, 0, 3]
+    }],
+    "export": {
+        "time_sequence": "falling.pvd",
+        "material_params": true
+    }
+}

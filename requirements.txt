@@ -11,3 +11,4 @@ networkx
 # igl
 # pymesh
 quadpy
+torch

@@ -24,21 +24,29 @@
         "mesh": "../../meshes/graspsim/gripper.msh",
         "position": [-10, 9, 0],
         "rotation": [0, 0, 0],
-        "scale": 3
+        "scale": 3,
+        "collision_proxy": {
+            "mesh": "../../meshes/graspsim/gripper.ply",
+            "linear_map": "../../weights/identity/gripper-to-gripper.hdf5"
+        }
     }, {
         "mesh": "../../meshes/graspsim/gripper.msh",
         "position": [10, 9, 0],
         "rotation": [0, 180, 0],
-        "scale": 3
+        "scale": 3,
+        "collision_proxy": {
+            "mesh": "../../meshes/graspsim/gripper.ply",
+            "linear_map": "../../weights/identity/gripper-to-gripper.hdf5"
+        }
     }, {
-        "mesh": "../../meshes/gargoyle/gargoyle.msh",
+        "mesh": "../../meshes/gargoyle/gargoyle-coarse.msh",
         "position": [22.5, 10.5, -7.5],
         "rotation": [0, 0, 0],
         "scale": 4.5,
         "body_id": 3,
         "collision_proxy": {
-            "mesh": "../../meshes/gargoyle/gargoyle-coarse.ply",
-            "linear_map": "../../weights/barycentric/gargoyle-coarse.hdf5"
+            "mesh": "../../meshes/gargoyle/gargoyle.ply",
+            "linear_map": "../../weights/barycentric/gargoyle-coarse-to-gargoyle.hdf5"
         }
     }],
 
@@ -59,7 +67,8 @@
         "id": 3,
         "E": 1e10,
         "nu": 0.3,
-        "rho": 1.11
+        "#rho": 1.11,
+        "rho": "../../densities/gargoyle-to-gargoyle-coarse.txt"
     }],
 
     "boundary_sidesets": [{
@@ -69,14 +78,19 @@
             [0.5, 1, 1]
         ],
         "relative": true
-    }, {
+        }, {
         "id": 2,
         "box": [
             [0.5, 0.99, 0],
             [1, 1, 1]
         ],
         "relative": true
-    }],
+        }],
+        
+    "collision_mesh": {
+        "mesh": "../../meshes/graspsim/scene.ply",
+        "linear_map": "../../weights/scene/graspsim.hdf5"
+    },
 
     "obstacles": [{
         "mesh": "../../meshes/obstacles/plane.obj",

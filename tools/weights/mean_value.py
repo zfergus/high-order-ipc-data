@@ -4,7 +4,7 @@ from numba import jit, prange
 
 import igl
 
-from .utils import quiet_tqdm
+from .utils import labeled_tqdm
 
 EPSILON = 1e-10
 EPSILON_FACE = 1e-10
@@ -27,7 +27,10 @@ def get_imp1(i, complex_dim):
 
 
 @jit(nopython=True, fastmath=True)
-def MorphPoint(vertices, point, faces, n_vertices, n_faces, dim=3, complex_dim=3):
+def MorphPoint(vertices, point, faces, dim=3, complex_dim=3):
+    n_vertices = vertices.shape[0]
+    n_faces = faces.shape[0]
+
     assert(n_faces > 0)
     assert(n_vertices > 0)
 
@@ -114,15 +117,15 @@ def compute_mean_value_weights(P, V, F, quiet=True):
     returns mapping matrix
     """
     assert(F.shape[1] == 4)
-    surface = igl.boundary_facets(F)  # get surface
+    BF = igl.boundary_facets(F)  # get surface
     # NV, NF, IM, _ = igl.remove_unreferenced(V, surface)  # Remove unreferenced
 
     W = []
 
-    for i, p in enumerate(quiet_tqdm(P, quiet)):
-        w = MorphPoint(V, p, surface, V.shape[0], surface.shape[0])
+    for i, p in enumerate(labeled_tqdm(P, "Building W")):
+        w = MorphPoint(V, p, BF)
         total_w = w.sum()
         # assert(total_w > 0)
         W.append(w / total_w)
 
-    return scipy.sparse.csc_matrix(W)
+    return scipy.sparse.csc_matrix(numpy.vstack(W))

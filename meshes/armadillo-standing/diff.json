@@ -1,0 +1,5 @@
+{
+    "operation": "difference",
+    "left": "armadillo2_outer.stl",
+    "right": "armadillo2_inner.obj"
+}

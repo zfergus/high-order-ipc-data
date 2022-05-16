@@ -7,86 +7,84 @@ import meshio
 
 import igl
 
+from weights.barycentric import compute_barycentric_weights
 from weights.higher_order_2D import build_phi_2D
 from weights.higher_order_3D import build_phi_3D
 from weights.utils import *
+from mesh.fe_mesh import FEMesh
+from mesh.write_obj import write_obj
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('mesh', type=pathlib.Path)
-    parser.add_argument('-o,--order', dest="order", type=int, default=2,
-                        choices=[2, 3])
-    parser.add_argument('-m', dest="div_per_edge", type=int, default=10)
-
-    args = parser.parse_args()
-
-    # Triangular mesh
-    mesh = meshio.read(args.mesh)
-
-    V = mesh.points
-    num_vertices = V.shape[0]
-
-    if mesh.cells[0].type == "triangle":
-        F = mesh.cells[0].data
-        E = np.sort(igl.edges(F))
-        BE = np.sort(igl.boundary_facets(F))
-        BE2E = boundary_to_full(BE, E)
-        BF = None
-    elif mesh.cells[0].type == "tetra":
-        T = mesh.cells[0].data
-        F = np.sort(faces(T))
-        # F = F[:, ::-1]  # Flip normals
-        E = igl.edges(F)
-        F2E = faces_to_edges(F, E)
-        BE = None
-        BF = np.sort(igl.boundary_facets(T))
-        # BF = BF[:, ::-1]  # Flip normals
-        BF2F = boundary_to_full(BF, F)
-
-    # insert higher order indices at end
-    V_fem = attach_higher_order_nodes(V, E, F, args.order)
-
-    if mesh.cells[0].type == "triangle":
-        # get Φ matrix
-        phi, E_col = build_phi_2D(
-            V_fem.shape[0], num_vertices, BE, BE2E, args.order,
-            args.div_per_edge)
+def build_collision_mesh(fe_mesh, div_per_edge):
+    """get Φ matrix"""
+    if fe_mesh.dim() == 2:
+        Phi, E_col = build_phi_2D(
+            fe_mesh.n_nodes(), fe_mesh.n_vertices(), fe_mesh.BE, fe_mesh.BE2E,
+            fe_mesh.order, div_per_edge)
         F_col = None
-    elif mesh.cells[0].type == "tetra":
-        # get phi matrix
-        phi, F_col = build_phi_3D(
-            num_vertices, E.shape[0], V_fem, BF, BF2F, F2E, args.order,
-            args.div_per_edge)
+    else:
+        assert(fe_mesh.dim() == 3)
+        Phi, F_col = build_phi_3D(
+            fe_mesh.n_vertices(), fe_mesh.n_edges(), fe_mesh.V_HO, fe_mesh.BF,
+            fe_mesh.BF2F, fe_mesh.F2E, fe_mesh.order, div_per_edge)
         E_col = None
 
     # compute collision vertices
-    phi = scipy.sparse.csc_matrix(phi)
-    V_col = phi @ V_fem
+    Phi = scipy.sparse.csc_matrix(Phi)
+    V_col = Phi @ fe_mesh.V_HO
 
     # Check for duplicate vertices
-    print("Checking for duplicate vertices... ", end="")
+    print("Checking for duplicate vertices... ", end="", flush=True)
     _V_col, _, _, _ = igl.remove_duplicate_vertices(
         V_col, F_col if E_col is None else E_col, 1e-7)
     print(f"{V_col.shape[0] - _V_col.shape[0]} duplicate vertices found")
 
-    ###########################################################################
-    # Output
+    return Phi, V_col, E_col, F_col
 
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('mesh', type=pathlib.Path)
+    parser.add_argument('-c,--collision-mesh',
+                        dest="collision_mesh", type=pathlib.Path, default=None)
+    parser.add_argument('-o,--order', dest="order",
+                        type=int, default=2, choices=[2, 3])
+    parser.add_argument('-m', dest="div_per_edge", type=int, default=10)
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
     root_dir = pathlib.Path(__file__).parents[1]
 
-    out_weight = (root_dir / "weights" / "higher_order" /
-                  f"{args.mesh.stem}-P{args.order}.hdf5")
+    # Triangular mesh
+    fe_mesh = FEMesh(args.mesh)
+    fe_mesh.attach_higher_order_nodes(args.order)
+    fe_mesh.save("fem_mesh.obj")
+
+    if args.collision_mesh is None:
+        Phi, V_col, E_col, F_col = build_collision_mesh(
+            fe_mesh, args.div_per_edge)
+        out_coll_mesh = (args.mesh.parent /
+                         f"{args.mesh.stem}-collision-mesh.obj")
+        print(f"saving collision mesh to {out_coll_mesh}")
+        write_obj(out_coll_mesh, V_col, E=E_col, F=F_col)
+
+        out_weight = (root_dir / "weights" / "higher_order" /
+                      f"{args.mesh.stem}-P{args.order}.hdf5")
+    else:
+        V_col = meshio.read(args.collision_mesh).points.astype(float)
+        Phi = compute_barycentric_weights(
+            V_col, fe_mesh.V_HO, fe_mesh.T, fe_mesh.T_HO,
+            order=fe_mesh.order)
+
+        out_weight = (root_dir / "weights" / "higher_order" /
+                      f"{args.mesh.stem}-P{args.order}-to-{args.collision_mesh.stem}.hdf5")
+
     print(f"saving weights to {out_weight}")
-    save_weights(out_weight, scipy.sparse.csc_matrix(phi), edges=E, faces=F)
+    save_weights(out_weight, Phi, edges=fe_mesh.E, faces=fe_mesh.F)
 
-    out_coll_mesh = args.mesh.parent / f"{args.mesh.stem}-collision-mesh.obj"
-    print(f"saving collision mesh to {out_coll_mesh}")
-    write_obj(out_coll_mesh, V_col, E=E_col, F=F_col)
-
-    out_fem_mesh = "fem_mesh.obj"
-    print(f"saving FEM mesh to {out_fem_mesh}")
-    write_obj(out_fem_mesh, V_fem, E=E if BF is None else None, F=BF)
+    print("W Error:", np.linalg.norm(Phi @ fe_mesh.V_HO - V_col, np.inf))
 
 
 if __name__ == '__main__':

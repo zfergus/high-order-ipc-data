@@ -10,159 +10,165 @@ import igl
 
 from weights.barycentric import compute_barycentric_weights
 from weights.mean_value import compute_mean_value_weights
-from weights.higher_order_3D import regular_2D_grid
-from weights.utils import save_weights, load_weights, write_obj
+from weights.L2 import compute_L2_projection_weights
+from weights.utils import save_weights, load_weights
 
 
-def test(v_tet, f_tet, f_tri, weights):
-    from scipy.spatial.transform import Rotation as R
-
-    # T = np.array([
-    #     [1, 1, 0],
-    #     [0, 1, 0],
-    #     [0, 0, 1],
-    # ])
-    # T = R.from_rotvec(np.pi * np.random.random(3)).as_matrix() @ T
-    T = np.eye(3)
-
-    deformed_v_tet = v_tet @ T.T
-    mesh = meshio.Mesh(deformed_v_tet, [("tetra", f_tet)])
-    mesh.write("deformed_coarse.msh", file_format="gmsh")
-
-    deformed_v_tri = weights @ deformed_v_tet
-    mesh = meshio.Mesh(deformed_v_tri, [("triangle", f_tri)])
-    mesh.write("deformed_dense.obj")
+def eliminate_near_zeros(A, tol=1e-12):
+    A.data[np.abs(A.data) < tol] = 0
+    A.eliminate_zeros()
 
 
-def test2(coll_mesh, fem_mesh, W):
-    if scipy.sparse.issparse(W):
-        W_dense = W.A
-    else:
-        W_dense = W
+def density(A):
+    return f"{(A.nnz / np.product(A.shape)) * 100:.2f}%"
 
-    # coll_mesh.point_data = {
-    #     f"w{i:02d}": W[:, i].reshape(-1, 1) for i in range(W.shape[1])
-    # }
+
+def compute_pseudoinverse(W, tol=1e-6):
+    W_dense = W if not scipy.sparse.issparse(W) else W.A
 
     U, Σ, Vᵀ = np.linalg.svd(W_dense, full_matrices=False)
-    Σ[Σ != 0] = 1 / Σ
+
+    Σ[abs(Σ) <= tol] = 0
+    Σ[Σ != 0] = 1 / Σ[Σ != 0]
+
     Winv = Vᵀ.T @ np.diag(Σ) @ U.T
 
-    v = coll_mesh.points.copy()
-    v[0, 1] *= 0.75
-    u_coll = v - coll_mesh.points
-    u_fem = Winv @ u_coll
-    print(Winv.shape, np.product(Winv.shape), (Winv > 0).sum())
+    Winv = scipy.sparse.csc_matrix(Winv)
+    eliminate_near_zeros(Winv)
 
-    coll_mesh.point_data["displacement"] = u_coll
-    fem_mesh.point_data["displacement"] = u_fem
+    print(np.linalg.norm((W @ Winv @ W - W).A))
 
-    meshio.write("fem_mesh.vtu", fem_mesh)
-    meshio.write("coll_mesh.vtu", coll_mesh)
+    return Winv
 
 
-def upsample(V, F, div_per_edge):
-    """Build Φ_3D"""
-    upsampled_V = [V]
-    downsample_buddies = [[[i, 1.0]] for i in range(V.shape[0])]
-    v_count = V.shape[0]
-
-    E = igl.edges(F)
-    edge_alphas = np.linspace(0, 1, div_per_edge)[1:-1]
-    for e in E:
-        v0, v1 = V[e]
-        for alpha in edge_alphas:
-            downsample_buddies[e[0]].append([v_count, 1 - alpha])
-            downsample_buddies[e[1]].append([v_count, alpha])
-            upsampled_V.append((v1 - v0) * alpha + v0)
-            v_count += 1
-
-    face_alphas, _ = regular_2D_grid(div_per_edge)
-    face_alphas = face_alphas[3 + 3 * (div_per_edge - 2):]
-    for f in F:
-        v0, v1, v2 = V[f]
-        for alpha, beta in face_alphas:
-            # no edge values
-            assert(alpha > 0 and alpha < 1)
-            assert(beta > 0 and beta < 1)
-            downsample_buddies[f[0]].append([v_count, alpha])
-            downsample_buddies[f[1]].append([v_count, beta])
-            downsample_buddies[f[2]].append([v_count, 1 - alpha - beta])
-            upsampled_V.append((v1 - v0) * alpha + (v2 - v0) * beta + v0)
-            v_count += 1
-
-    return np.vstack(upsampled_V), downsample_buddies
+def remove_unreferenced_vertices(mesh, filename=None):
+    V = mesh.points
+    assert(len(mesh.cells) == 1)
+    F = mesh.cells[0].data.astype(int)
+    # Removed unreferenced vertices
+    V, F, _, J = igl.remove_unreferenced(V, F)
+    unref_removed = mesh.points.shape[0] - V.shape[0]
+    assert(unref_removed != 0 or (F - mesh.cells[0].data).sum() == 0)
+    print(f"Found and removed {unref_removed} unreferenced vertices")
+    mesh.points = V
+    mesh.cells[0].data = F.astype("int32")
+    if filename is not None and unref_removed != 0:
+        print(f"Saving unreference free mesh to {filename}")
+        if filename.suffix == ".msh":
+            mesh.write(filename, file_format="gmsh22")
+        else:
+            mesh.write(filename)
+    return J
 
 
-def downsample(W, downsample_buddies):
-    W_downsampled = np.vstack([
-        sum(weight * W[buddy] for buddy, weight in buddies).A
-        for buddies in downsample_buddies])
-    W_downsampled /= W_downsampled.sum(axis=1)[:, None]
-    return W_downsampled
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('coarse_mesh', type=pathlib.Path)
+    parser.add_argument('fine_mesh', type=pathlib.Path)
+    parser.add_argument('-m,--method', dest="method",
+                        default="BC", choices=["BC", "MVC", "L2", "identity"])
+    parser.add_argument('-f,--force-recompute', action="store_true",
+                        default=False, dest="force_recompute")
+    return parser.parse_args()
+
+
+def read_mesh(filename):
+    print(f"Loading {filename}")
+    mesh = meshio.read(filename)
+    # remove_unreferenced_vertices(mesh, filename)
+    V = mesh.points
+    F = []
+    for cells in mesh.cells:
+        assert(cells.type == "tetra")  # Tet mesh
+        F.append(cells.data.astype(int))
+    F = np.vstack(F)
+
+    BF = igl.boundary_facets(F)
+    bmesh = meshio.Mesh(V, [("triangle", BF)])
+    BV2V = remove_unreferenced_vertices(bmesh, filename.with_suffix(".ply"))
+    BV = bmesh.points
+    BF = bmesh.cells[0].data.astype(int)
+
+    return BV, BF, BV2V, V, F
+
+
+def compute_W(BV_from, BF_from, V_from, F_from, BV2V_from,
+              BV_to, BF_to, method):
+    if method == "MVC":
+        W = compute_mean_value_weights(BV_to, V_from, F_from, quiet=False)
+    elif method == "BC":
+        W = compute_barycentric_weights(BV_to, V_from, F_from, quiet=False)
+    elif method == "L2":
+        W = compute_L2_projection_weights(
+            BV_to, BF_to, BV_from, BF_from, lump_mass_matrix=False)
+        W_full = scipy.sparse.lil_matrix((BV_to.shape[0], V_from.shape[0]))
+        W_full[:, BV2V_from] = W
+        W = W_full
+    elif method == "identity":
+        assert(BV_from.shape == BV_to.shape)
+        W = scipy.sparse.eye(BV_from.shape[0])
+        W_full = scipy.sparse.lil_matrix((BV_to.shape[0], V_from.shape[0]))
+        W_full[:, BV2V_from] = W
+        W = W_full
+
+    W = scipy.sparse.csc_matrix(W)
+    eliminate_near_zeros(W)
+
+    return W
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('contact_mesh', type=pathlib.Path)
-    parser.add_argument('fem_mesh', type=pathlib.Path)
-    parser.add_argument('-m,--method', dest="method",
-                        default="MVC", choices=["BC", "MVC"])
-    parser.add_argument('--force-recompute', default=False,
-                        # action=argparse.BooleanOptionalAction
-                        type=bool)
+    args = parse_args()
 
-    args = parser.parse_args()
+    BV_coarse, BF_coarse, BV2V_coarse, V_coarse, F_coarse = read_mesh(
+        args.coarse_mesh)
+    print()
 
-    coll_mesh = meshio.read(args.contact_mesh)
-    assert(coll_mesh.cells[0].type == "triangle")  # Triangular mesh
-    f_coll = coll_mesh.cells[0].data.astype(int)
-    v_coll = coll_mesh.points
-
-    fem_mesh = meshio.read(args.fem_mesh)
-    assert(fem_mesh.cells[0].type == "tetra")  # Tetrahedral Mesh
-    f_fem = fem_mesh.cells[0].data.astype(int)
-    v_fem = fem_mesh.points
+    BV_fine, BF_fine, BV2V_fine,  V_fine, F_fine = read_mesh(args.fine_mesh)
+    print()
 
     root = pathlib.Path(__file__).parents[1]
-    if args.method == "MVC":
-        out_dir = pathlib.Path(root / "weights" / "mean_value")
-    elif args.method == "BC":
-        out_dir = pathlib.Path(root / "weights" / "barycentric")
+    method2dir = {"MVC": "mean_value", "BC": "barycentric",
+                  "L2": "L2", "identity": "identity"}
+    out_dir = pathlib.Path(root / "weights" / method2dir[args.method])
     out_dir.mkdir(exist_ok=True, parents=True)
-    hdf5_path = (out_dir /
-                 f'{args.fem_mesh.stem}-to-{args.contact_mesh.stem}.hdf5')
-    # f'{args.contact_mesh.stem}-to-{args.fem_mesh.stem}.hdf5')
 
-    # if(v_fem.shape[0] > v_coll.shape[0]):
-    upsampled_V, downsample_buddies = upsample(
-        v_coll, f_coll, 10)  # int(np.ceil(v_fem.shape[0] / v_coll.shape[0])))
-    # write_obj("test.obj", upsampled_V)
-    # exit(0)
-    # else:
-    #     upsampled_V = v_coll
-    #     downsample_buddies = None
+    hdf5_path = (
+        out_dir / f'{args.coarse_mesh.stem}-to-{args.fine_mesh.stem}.hdf5')
 
     if args.force_recompute or not hdf5_path.exists():
-        if args.method == "MVC":
-            W = compute_mean_value_weights(v_coll, v_fem, f_fem, quiet=False)
-        elif args.method == "BC":
-            W = compute_barycentric_weights(
-                upsampled_V, v_fem, f_fem, quiet=False)
-            if downsample_buddies is not None:
-                W = downsample(W, downsample_buddies)
-        W = scipy.sparse.csc_matrix(W)
-        print(f"Saving weights to {hdf5_path}")
+        W = compute_W(BV_coarse, BF_coarse, V_coarse, F_coarse, BV2V_coarse,
+                      BV_fine, BF_fine, args.method)
+        print(f"Saving W to {hdf5_path}")
         save_weights(hdf5_path, W)
     else:
-        print(f"Loading weights from {hdf5_path}")
+        print(f"Loading W from {hdf5_path}")
         W = scipy.sparse.csc_matrix(load_weights(hdf5_path))
 
-    # Checks error of mapping
-    # print("Error:", np.linalg.norm(W @ v_fem - v_coll, np.inf))
+    print()
 
-    # test(v_tet, f_tet, f_tri, W)
-    # test2(coll_mesh, fem_mesh, W)
+    hdf5_path = (
+        out_dir / f'{args.fine_mesh.stem}-to-{args.coarse_mesh.stem}.hdf5')
+    if args.force_recompute or not hdf5_path.exists():
+        Winv = compute_W(BV_fine, BF_fine, V_fine, F_fine, BV2V_fine,
+                         BV_coarse, BF_coarse, args.method)
+        # W_full = compute_W(BV_coarse, BF_coarse, V_coarse, F_coarse, BV2V_coarse,
+        #                    V_fine, F_fine, args.method)
+        # Winv = compute_pseudoinverse(W_full)[BV2V_coarse]
+
+        print(f"Saving W⁻¹ to {hdf5_path}")
+        save_weights(hdf5_path, Winv)
+    else:
+        print(f"Loading W⁻¹ from {hdf5_path}")
+        Winv = scipy.sparse.csc_matrix(load_weights(hdf5_path))
+
+    print(f"\ndensity(W)={density(W)} density(W⁻¹)={density(Winv)}")
+    print(f"\nW.nnz={W.nnz} W⁻¹.nnz={Winv.nnz}")
+
+    # Checks error of mapping
+    print("W   Error:", np.linalg.norm(W @ V_coarse - BV_fine, np.inf))
+    # print("W⁻¹ Error:", np.linalg.norm(Winv_ @ V_fine - BV_coarse, np.inf))
+    print("W⁻¹ Error:", np.linalg.norm(Winv @ V_fine - BV_coarse, np.inf))
 
 
 if __name__ == "__main__":

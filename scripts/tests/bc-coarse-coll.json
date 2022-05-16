@@ -28,7 +28,7 @@
     }],
     "collision_mesh": {
         "mesh": "../../meshes/cube/cube.ply",
-        "linear_map": "../../weights/barycentric/cube-sub4-to-cube.hdf5"
+        "linear_map": "../../weights/L2/cube-sub4-to-cube.hdf5"
     },
     "#collision_mesh": {
         "mesh": "../../meshes/cube/cube-sub4.ply",
