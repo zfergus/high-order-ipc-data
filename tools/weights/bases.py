@@ -1,4 +1,14 @@
 import numpy
+import torch
+
+
+# def pow(x, n):
+#     # if type(x) is numpy.array or type(x) is numpy.ndarray or type(x) is numpy.float64:
+#     #     return numpy.power(x, n)
+#     # else:
+#     #     return torch.pow(x, n)
+#     return x**n
+
 
 hat_phis_1D = {
     1: [lambda x: 1 - x, lambda x: x],
@@ -41,6 +51,64 @@ hat_phis_2D = {
         lambda x, y: (9.0 / 2.0) * y * (x + y - 1) * (3 * x + 3 * y - 2),
         lambda x, y: -9.0 / 2.0 * y * (3 * x * y - x + 3 * y**2 - 4 * y + 1),
         lambda x, y: -27 * x * y * (x + y - 1),
+    ],
+    4: [
+        lambda x, y: (
+            helper_0 := pow(x, 2),
+            helper_1 := pow(x, 3),
+            helper_2 := pow(y, 2),
+            helper_3 := pow(y, 3),
+            64*helper_0*helper_2 - 80*helper_0*y + (70.0/3.0)*helper_0
+            + (128.0/3.0)*helper_1*y - 80.0/3.0*helper_1 - 80*helper_2*x
+            + (70.0/3.0)*helper_2 + (128.0/3.0)*helper_3*x - 80.0/3.0*helper_3
+            + (32.0/3.0)*pow(x, 4) + (140.0/3.0)*x*y - 25.0/3.0*x
+            + (32.0/3.0)*pow(y, 4) - 25.0/3.0*y + 1
+        )[-1],
+        lambda x, y: (1.0/3.0)*x*(32*pow(x, 3) - 48*pow(x, 2) + 22*x - 3),
+        lambda x, y: (1.0/3.0)*y*(32*pow(y, 3) - 48*pow(y, 2) + 22*y - 3),
+        lambda x, y: (
+            helper_0 := pow(x, 2),
+            helper_1 := pow(y, 2),
+            - 16.0/3.0*x*(24*helper_0*y - 18*helper_0 + 24*helper_1*x
+                          - 18*helper_1 + 8*pow(x, 3) - 36*x*y + 13*x + 8*pow(y, 3) + 13*y - 3)
+        )[-1],
+        lambda x, y: (
+            helper_0 := 32*pow(x, 2),
+            helper_1 := pow(y, 2),
+            4*x*(helper_0*y - helper_0 + 16*helper_1*x - 4 *
+                 helper_1 + 16*pow(x, 3) - 36*x*y + 19*x + 7*y - 3)
+        )[-1],
+        lambda x, y: (
+            helper_0 := pow(x, 2),
+            -16.0/3.0*x * (8*helper_0*y - 14*helper_0 + 8 *
+                           pow(x, 3) - 6*x*y + 7*x + y - 1),
+        )[-1],
+        lambda x, y: (16.0/3.0)*x*y*(8*pow(x, 2) - 6*x + 1),
+        lambda x, y: (
+            helper_0 := 4*x,
+            helper_0*y * (-helper_0 + 16*x*y - 4*y + 1),
+        )[-1],
+        lambda x, y: (16.0/3.0)*x*y*(8*pow(y, 2) - 6*y + 1),
+        lambda x, y: (
+            helper_0 := pow(y, 2),
+            -16.0/3.0*y * (8*helper_0*x - 14*helper_0 - 6 *
+                           x*y + x + 8*pow(y, 3) + 7*y - 1)
+        )[-1],
+        lambda x, y: (
+            helper_0 := pow(x, 2),
+            helper_1 := 32*pow(y, 2),
+            4*y*(16*helper_0*y - 4*helper_0 + helper_1 *
+                 x - helper_1 - 36*x*y + 7*x + 16*pow(y, 3) + 19*y - 3)
+        )[-1],
+        lambda x, y: (
+            helper_0 := pow(x, 2),
+            helper_1 := pow(y, 2),
+            -16.0/3.0*y*(24*helper_0*y - 18*helper_0 + 24*helper_1*x -
+                         18*helper_1 + 8*pow(x, 3) - 36*x*y + 13*x + 8*pow(y, 3) + 13*y - 3)
+        )[-1],
+        lambda x, y: 32*x*y*(x + y - 1)*(4*x + 4*y - 3),
+        lambda x, y: -32*x*y*(4*y - 1)*(x + y - 1),
+        lambda x, y: -32*x*y*(4*x - 1)*(x + y - 1),
     ]
 }
 
@@ -102,15 +170,254 @@ hat_phis_3D = {
         lambda x, y, z: -27*x*z*(x + y + z - 1),
         lambda x, y, z: 27*x*y*z,
         lambda x, y, z: -27*y*z*(x + y + z - 1),
+    ],
+    4: [
+        lambda x, y, z: (
+            helper_0 := x + y + z - 1,
+            helper_1 := x*y,
+            helper_2 := pow(y, 2),
+            helper_3 := 9*x,
+            helper_4 := pow(z, 2),
+            helper_5 := pow(x, 2),
+            helper_6 := 9*y,
+            helper_7 := 9*z,
+            helper_8 := 26*helper_0,
+            helper_9 := helper_8*z,
+            helper_10 := 13*pow(helper_0, 2),
+            helper_11 := 13*helper_0,
+            (1.0/3.0)*helper_0*(
+                3*pow(helper_0, 3) + helper_1*helper_8 + 18*helper_1*z
+                + helper_10*x + helper_10*y + helper_10*z + helper_11*helper_2
+                + helper_11*helper_4 + helper_11*helper_5 + helper_2*helper_3
+                + helper_2*helper_7 + helper_3*helper_4 + helper_4*helper_6
+                + helper_5*helper_6 + helper_5*helper_7 + helper_9*x
+                + helper_9*y + 3*pow(x, 3) + 3*pow(y, 3) + 3*pow(z, 3)),
+        )[-1],
+        lambda x, y, z: (1.0/3.0)*x*(32*pow(x, 3) - 48*pow(x, 2) + 22*x - 3),
+        lambda x, y, z: (1.0/3.0)*y*(32*pow(y, 3) - 48*pow(y, 2) + 22*y - 3),
+        lambda x, y, z: (1.0/3.0)*z*(32*pow(z, 3) - 48*pow(z, 2) + 22*z - 3),
+        lambda x, y, z:(
+            helper_0 := 36*x,
+            helper_1 := y*z,
+            helper_2 := pow(x, 2),
+            helper_3 := pow(y, 2),
+            helper_4 := pow(z, 2),
+            helper_5 := 24*x,
+            helper_6 := 24*y,
+            helper_7 := 24*z,
+            -16.0/3.0*x*(
+                -helper_0*y - helper_0*z + 48*helper_1*x - 36*helper_1
+                + helper_2*helper_6 + helper_2*helper_7 - 18*helper_2
+                + helper_3*helper_5 + helper_3*helper_7 - 18*helper_3
+                + helper_4*helper_5 + helper_4*helper_6 - 18*helper_4
+                + 8*pow(x, 3) + 13*x + 8*pow(y, 3) + 13*y + 8*pow(z, 3)
+                + 13*z - 3)
+        )[-1],
+        lambda x, y, z: (
+            helper_0 := 2*y,
+            helper_1 := 2*z,
+            helper_2 := x + y + z - 1,
+            helper_3 := helper_2*x,
+            4*helper_3*(
+                -helper_0*helper_2 + helper_0*x - helper_0*z - helper_1*helper_2
+                + helper_1*x + 3*pow(helper_2, 2) + 10*helper_3 + 3*pow(x, 2)
+                - pow(y, 2) - pow(z, 2))
+        )[-1],
+        lambda x, y, z:(
+            helper_0 := 6*x,
+            helper_1 := pow(x, 2),
+            helper_2 := 8*helper_1,
+            - 16.0/3.0*x*(-helper_0*y - helper_0*z - 14*helper_1 +
+                          helper_2*y + helper_2*z + 8*pow(x, 3) + 7*x + y + z - 1)
+        )[-1],
+        lambda x, y, z: (16.0/3.0)*x*y*(8*pow(x, 2) - 6*x + 1),
+        lambda x, y, z: (
+            helper_0 := 4*x, helper_0*y*(-helper_0 + 16*x*y - 4*y + 1)
+        )[-1],
+        lambda x, y, z: (16.0/3.0)*x*y*(8*pow(y, 2) - 6*y + 1),
+        lambda x, y, z:(
+            helper_0 := 6*y,
+            helper_1 := pow(y, 2),
+            helper_2 := 8*helper_1,
+            -16.0/3.0*y*(-helper_0*x - helper_0*z - 14*helper_1 +
+                         helper_2*x + helper_2*z + x + 8*pow(y, 3) + 7*y + z - 1)
+        )[-1],
+        lambda x, y, z:(
+            helper_0 := 2*y,
+            helper_1 := 2*x,
+            helper_2 := x + y + z - 1,
+            helper_3 := helper_2*y,
+            - 4*helper_3*(
+                -helper_0*x - helper_0*z + helper_1*helper_2 + helper_1*z
+                - 3*pow(helper_2, 2) + 2*helper_2*z - 10*helper_3 + pow(x, 2)
+                - 3*pow(y, 2) + pow(z, 2))
+        )[-1],
+        lambda x, y, z:(
+            helper_0 := 36*x,
+            helper_1 := y*z,
+            helper_2 := pow(x, 2),
+            helper_3 := pow(y, 2),
+            helper_4 := pow(z, 2),
+            helper_5 := 24*x,
+            helper_6 := 24*y,
+            helper_7 := 24*z,
+            -16.0/3.0*y*(
+                -helper_0*y - helper_0*z + 48*helper_1*x - 36*helper_1
+                + helper_2*helper_6 + helper_2*helper_7 - 18*helper_2
+                + helper_3*helper_5 + helper_3*helper_7 - 18*helper_3
+                + helper_4*helper_5 + helper_4*helper_6 - 18*helper_4
+                + 8*pow(x, 3) + 13*x + 8*pow(y, 3) + 13*y + 8*pow(z, 3)
+                + 13*z - 3)
+        )[-1],
+        lambda x, y, z:(
+            helper_0 := 36*x,
+            helper_1 := y*z,
+            helper_2 := pow(x, 2),
+            helper_3 := pow(y, 2),
+            helper_4 := pow(z, 2),
+            helper_5 := 24*x,
+            helper_6 := 24*y,
+            helper_7 := 24*z,
+            -16.0/3.0*z*(
+                -helper_0*y - helper_0*z + 48*helper_1*x - 36*helper_1
+                + helper_2*helper_6 + helper_2*helper_7 - 18*helper_2
+                + helper_3*helper_5 + helper_3*helper_7 - 18*helper_3
+                + helper_4*helper_5 + helper_4*helper_6 - 18*helper_4
+                + 8*pow(x, 3) + 13*x + 8*pow(y, 3) + 13*y + 8*pow(z, 3)
+                + 13*z - 3)
+        )[-1],
+        lambda x, y, z:(
+            helper_0 := 2*x,
+            helper_1 := 2*z,
+            helper_2 := x + y + z - 1,
+            helper_3 := helper_2*z,
+            -4*helper_3*(helper_0*helper_2 + helper_0*y - helper_1*x - helper_1*y - 3*pow(
+                helper_2, 2) + 2*helper_2*y - 10*helper_3 + pow(x, 2) + pow(y, 2) - 3*pow(z, 2))
+        )[-1],
+        lambda x, y, z: (
+            helper_0 := 6*z,
+            helper_1 := pow(z, 2),
+            helper_2 := 8*helper_1,
+            -16.0/3.0*z*(-helper_0*x - helper_0*y - 14*helper_1 +
+                         helper_2*x + helper_2*y + x + y + 8*pow(z, 3) + 7*z - 1)
+        )[-1],
+        lambda x, y, z: (16.0/3.0)*x*z*(8*pow(x, 2) - 6*x + 1),
+        lambda x, y, z:(
+            helper_0 := 4*x, helper_0*z*(-helper_0 + 16*x*z - 4*z + 1))[-1],
+        lambda x, y, z: (16.0/3.0)*x*z*(8*pow(z, 2) - 6*z + 1),
+        lambda x, y, z: (16.0/3.0)*y*z*(8*pow(y, 2) - 6*y + 1),
+        lambda x, y, z:(
+            helper_0 := 4*y,
+            helper_0*z*(-helper_0 + 16*y*z - 4*z + 1)
+        )[-1],
+        lambda x, y, z: (16.0/3.0)*y*z*(8*pow(z, 2) - 6*z + 1),
+        lambda x, y, z: 32*x*y*(x + y + z - 1)*(4*x + 4*y + 4*z - 3),
+        lambda x, y, z: -32*x*y*(4*y - 1)*(x + y + z - 1),
+        lambda x, y, z: -32*x*y*(4*x - 1)*(x + y + z - 1),
+        lambda x, y, z: 32*x*z*(x + y + z - 1)*(4*x + 4*y + 4*z - 3),
+        lambda x, y, z: -32*x*z*(4*z - 1)*(x + y + z - 1),
+        lambda x, y, z: -32*x*z*(4*x - 1)*(x + y + z - 1),
+        lambda x, y, z: 32*x*y*z*(4*x - 1),
+        lambda x, y, z: 32*x*y*z*(4*z - 1),
+        lambda x, y, z: 32*x*y*z*(4*y - 1),
+        lambda x, y, z: -32*y*z*(4*y - 1)*(x + y + z - 1),
+        lambda x, y, z: -32*y*z*(4*z - 1)*(x + y + z - 1),
+        lambda x, y, z: 32*y*z*(x + y + z - 1)*(4*x + 4*y + 4*z - 3),
+        lambda x, y, z: -256*x*y*z*(x + y + z - 1),
     ]
 }
 
 edges_3D_order = numpy.array([[0, 1], [1, 2], [2, 0], [0, 3], [1, 3], [2, 3]])
-# The order of the vertices in the face is not verified (need P4)
-faces_3D_order = numpy.array([[0, 1, 2], [0, 1, 3], [1, 2, 3], [0, 2, 3]])
+faces_3D_order = numpy.array([[0, 1, 2], [0, 1, 3], [1, 2, 3], [3, 2, 0]])
+face_node_3D_order = {
+    1: None,
+    2: None,
+    3: numpy.zeros(4, dtype=int),
+    4: numpy.array([[0, 1, 2], [0, 1, 2], [0, 1, 2], [2, 0, 1]])
+}
+
+
+gmsh_to_basis_order = {
+    1: [0, 1, 2, 3],
+    2: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    3: [0, 1, 2, 3,  # vertices
+        4, 5,    6, 7,    8, 9,    11, 10,    15, 14,    13, 12,  # edges
+        16, 17, 19, 18],  # faces
+    4: [0, 1, 2, 3,  # vertices
+        4, 5, 6,  7, 8, 9,  10, 11, 12,  15, 14, 13,  21, 20, 19,  18, 17, 16,  # edges
+        22, 23, 24,  25, 27, 26,  32, 31, 33,  30, 29, 28,   # faces
+        34],  # cell
+}
+
+basis_order_to_gmsh = {
+    1: [0, 1, 2, 3],
+    2: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    3: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 10, 15, 14, 13, 12, 16, 17, 19, 18],
+    4: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 14, 13, 21, 20, 19, 18,
+        17, 16, 22, 23, 24, 25, 27, 26, 33, 32, 31, 29, 28, 30, 34],
+}
+
+
+nodes_per_edge = {1: 0, 2: 1, 3: 2, 4: 3}
+nodes_per_face = {1: 0, 2: 0, 3: 1, 4: 3}
+nodes_per_cell = {1: 0, 2: 0, 3: 0, 4: 1}
+nodes_per_element = {1: 4, 2: 10, 3: 20, 4: 35}
+
+
+def edge_nodes(v1, v2, order):
+    if order == 1:
+        return []
+    if order == 2:
+        return [(v1 + v2) / 2]
+    elif order == 3:
+        return [v1 + (v2 - v1) / 3, v1 + 2 * (v2 - v1) / 3]
+    elif order == 4:
+        return [
+            v1 + (v2 - v1) * 0.25,
+            v1 + (v2 - v1) * 0.5,
+            v1 + (v2 - v1) * 0.75
+        ]
+    else:
+        raise NotImplementedError(f"P{order} not implemented!")
+
+
+def face_nodes(v1, v2, v3, order):
+    if order <= 2:
+        return []
+    elif order == 3:
+        return numpy.array([(v1 + v2 + v3) / 3])
+    elif order == 4:
+        return numpy.array([
+            0.5 * v1 + 0.25 * v2 + 0.25 * v3,
+            0.25 * v1 + 0.25 * v2 + 0.5 * v3,
+            0.25 * v1 + 0.5 * v2 + 0.25 * v3,
+        ])
+    else:
+        raise NotImplementedError(f"P{order} not implemented!")
+
+
+def cell_nodes(v1, v2, v3, v4, order):
+    if order <= 3:
+        return []
+    elif order == 4:
+        return [(v1 + v2 + v3 + v4) / 4]
+    else:
+        raise NotImplementedError(f"P{order} not implemented!")
+
+
+phi_3D_to_2D = {
+    1: [[0, 1, 2], [0, 1, 3], [1, 2, 3], [0, 2, 3]],
+    2: [[0, 1, 2, 4, 5, 6], [0, 1, 3, 4, 7, 8], [1, 2, 3, 5, 9, 8], [0, 2, 3, 6, 7, 9]],
+    3: [[0, 1, 2, 4, 5, 6, 7, 9, 8, 16], [0, 1, 3, 4, 5, 12, 13, 10, 11, 17], [1, 2, 3, 6, 7, 14, 15, 12, 13, 18], [0, 2, 3, 9, 8, 14, 15, 10, 11, 19]],
+    4: [[0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 22, 23, 24], [0, 1, 3, 4, 5, 6, 16, 17, 18, 15, 14, 13, 25, 26, 27],
+        [1, 2, 3, 7, 8, 9, 19, 20, 21, 18, 17, 16, 28, 29, 30], [0, 2, 3, 12, 11, 10, 19, 20, 21, 15, 14, 13, 33, 32, 31]]
+}
 
 if __name__ == "__main__":
     import itertools
+    import sympy
+
+    x, y, z = sympy.symbols("x y z")
 
     V = numpy.array([
         [0, 0, 0],
@@ -119,18 +426,50 @@ if __name__ == "__main__":
         [0, 0, 1],
     ], dtype=float)
 
+    order = 4
+
     E = edges_3D_order
-    EV = numpy.empty((12, 3))
-    EV[::2] = ((V[E[:, 1]] - V[E[:, 0]]) * 1/3 + V[E[:, 0]])
-    EV[1::2] = ((V[E[:, 1]] - V[E[:, 0]]) * 2/3 + V[E[:, 0]])
+    EV = []
+    for e in E:
+        EV.append(edge_nodes(*V[e], order))
+    EV = numpy.vstack(EV)
 
     F = faces_3D_order
-    FV = V[F].sum(axis=1) / 3
+    FV = []
+    for fi, f in enumerate(F):
+        FV.append(face_nodes(*V[f], order)[face_node_3D_order[order][fi]])
+    FV = numpy.vstack(FV)
 
-    # for order in itertools.permutations(numpy.arange(4)):
-    #     N = numpy.vstack([V, EV, FV[numpy.array(order)]])
-    #     if all([abs(hat_phis_3D[3][i](*n) - 1) < 1e-12 for i, n in enumerate(N)]):
-    #         print(F[numpy.array(order)])
-    #         # break
-    N = numpy.vstack([V, EV, FV])
-    print([hat_phis_3D[3][i](*n) for i, n in enumerate(N)])
+    CV = numpy.array(cell_nodes(*V, order))
+
+    # n = 2
+    # for k, xyz in enumerate([(x, y, 0), (x, 0, y), (1-x-y, x, y), (0, x, y)]):
+    #     map = []
+    #     for i, phi_i in enumerate(hat_phis_3D[n]):
+    #         for j, phi_j in enumerate(hat_phis_2D[n]):
+    #             if (phi_i(*xyz) - phi_j(x, y)).simplify() == 0:
+    #                 map.append((j, i))
+    #             # if i == 0 and j == 0 and abs((phi_i(*xyz) - phi_j(x, y)).simplify().subs([(x, 1), (y, 1)])) < 1e-13:
+    #             #     map[j] = i
+    #     print(map)
+    #     # print([map[i] for i in range(0, len(hat_phis_2D[n]))])
+
+    # for perm in itertools.permutations(numpy.arange(4)):
+    #     perm = numpy.array(perm)
+
+    # FV = []
+    # for f in F[perm]:
+    #     FV.append(face_nodes(*V[f], order))
+    # FV = numpy.vstack(FV)
+
+    if order == 4:
+        N = numpy.vstack([V, EV, FV, CV])
+        assert(N.shape[0] == 35)
+    else:
+        N = numpy.vstack([V, EV, FV])
+    print([hat_phis_3D[order][i](*n) for i, n in enumerate(N)][20:])
+    if all([abs(hat_phis_3D[order][i](*n) - 1) < 1e-12 for i, n in enumerate(N)]):
+        print(F)
+        # break
+    # N = numpy.vstack([V, EV, FV])
+    # print([hat_phis_3D[3][i](*n) for i, n in enumerate(N)])

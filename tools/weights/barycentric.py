@@ -77,25 +77,25 @@ class VolumetricClosestPointQuery:
         return fi, bcs[fi]
 
 
-def compute_barycentric_weights(P, V, F, F_HO=None, order=1, quiet=True):
+def compute_barycentric_weights(P, V, T_P1, T=None, order=1, quiet=True):
     """
     P: points of dense mesh; 2d matrix (|V_dense|, 3)
     V: vertices of tet mesh; 2d matrix (|V_tet|, 3)
-    F: faces of tet mesh; 2d matrix (|F|, 4)
-    F_HO: Tets with higher order nodes attached
+    T_P1: faces of tet mesh; 2d matrix (|F|, 4)
+    T: Tets with higher order nodes attached
     order: basis order
     returns mapping matrix
     """
     M = scipy.sparse.lil_matrix((P.shape[0], V.shape[0]))
 
-    if F_HO is None:
-        F_HO = F
+    if T is None:
+        T = T_P1
 
-    closest_point = VolumetricClosestPointQuery(V, F)
+    closest_point = VolumetricClosestPointQuery(V, T_P1)
 
     for pi, p in enumerate(labeled_tqdm(P, "Compute W")):
-        fi, bc = closest_point(p)
+        ti, bc = closest_point(p)
         uvw = bc[1:]
-        M[pi, F_HO[fi]] = [phi(*uvw) for phi in hat_phis_3D[order]]
+        M[pi, T[ti]] = [phi(*uvw) for phi in hat_phis_3D[order]]
 
     return M

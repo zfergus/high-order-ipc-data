@@ -6,9 +6,12 @@ import trimesh
 
 import igl
 
-from .bases import hat_phis_2D
+
+from .bases import *
 from .utils import labeled_tqdm
-from mesh.utils import faces_to_edges
+from mesh.utils import boundary_to_full, faces_to_edges, sorted_tuple, faces
+from mesh.invert_gmapping import sample_tet
+from mesh.write_obj import write_obj
 
 
 def regular_2D_grid(n):
@@ -54,16 +57,24 @@ def regular_2D_grid(n):
     return np.array(V), np.array(F)
 
 
-def build_phi_3D(num_vertices, num_edges, V, BF_in, BF2F, F2E, order, div_per_edge):
+def find_row_in_array(A, a):
+    for i, ai in enumerate(A):
+        if sorted_tuple(a) == sorted_tuple(ai):
+            return i
+    raise ValueError("unable to find row")
+
+
+def build_phi_3D(mesh, div_per_edge):
     """Build Φ_3D"""
     V_grid, F_grid = regular_2D_grid(div_per_edge)
-    alphas = V_grid[:, 0]
-    betas = V_grid[:, 1]
+    alphas, betas = numpy.hsplit(V_grid, 2)
 
-    num_nodes = V.shape[0]
-    n_nodes_per_edge = order - 1
+    # Boundary in full ids
+    BF_full = np.sort(igl.boundary_facets(mesh.P1()))
+    BF_full = np.sort(BF_full)
 
-    BV, BF, _, J = igl.remove_unreferenced(V, BF_in)
+    # Boundary in local ids
+    BV, BF, *_ = igl.remove_unreferenced(mesh.V, BF_full)
     BE = igl.edges(BF)
     BF2BE = faces_to_edges(BF, BE)
     nBV = BV.shape[0]
@@ -75,21 +86,26 @@ def build_phi_3D(num_vertices, num_edges, V, BF_in, BF2F, F2E, order, div_per_ed
     num_coll_vertices = (
         nBV + (div_per_edge - 2) * nBE + nBF * n_grid_interior_vertices)
 
-    # The order of Φ's rows will be: corners then edge interior then face interior
-    phi = scipy.sparse.lil_matrix((num_coll_vertices, num_nodes))
+    BF2F = boundary_to_full(BF_full, mesh.F)
+    F2E = faces_to_edges(mesh.F, mesh.E)
 
-    for fi, f in enumerate(labeled_tqdm(BF_in, "Building Φ")):
+    # The order of Φ's rows will be: corners then edge interior then face interior
+    phi = scipy.sparse.lil_matrix((num_coll_vertices, mesh.n_nodes()))
+
+    for fi, f in enumerate(labeled_tqdm(BF_full, "Building Φ")):
         # Construct a list of nodes associated with face f
         nodes = f.tolist()
         # Edge nodes
-        offset = num_vertices
-        delta = n_nodes_per_edge
+        offset = mesh.n_vertices()
+        delta = nodes_per_edge[mesh.order]
         for ei in F2E[BF2F[fi]]:
             nodes.extend(offset + ei * delta + np.arange(delta))
         # Face nodes
-        if order == 3:
-            offset += delta * num_edges
-            nodes.append(offset + BF2F[fi])
+        if mesh.order >= 3:
+            offset += delta * mesh.n_edges()
+            delta = nodes_per_face[mesh.order]
+            nodes.extend(offset + fi * delta + np.arange(delta))
+        # Cell nodes (not needed for 2D basis)
 
         # Map from local collision vertices to global
         rows = BF[fi].tolist()
@@ -101,12 +117,12 @@ def build_phi_3D(num_vertices, num_edges, V, BF_in, BF2F, F2E, order, div_per_ed
         delta = n_grid_interior_vertices
         rows.extend(offset + fi * delta + np.arange(delta))
 
-        # evaluate ϕᵢ on the face nodes
+        assert(len(nodes) == len(hat_phis_2D[mesh.order]))
         for i, node_i in enumerate(nodes):
-            phi[rows, node_i] = hat_phis_2D[order][i](alphas, betas)
+            phi[rows, node_i] = hat_phis_2D[mesh.order][i](alphas, betas)
 
     phi = phi.tocsc()
-    V_col = phi @ V
+    V_col = phi @ mesh.V
 
     # Stitch faces together
     F_col = []
@@ -125,8 +141,7 @@ def build_phi_3D(num_vertices, num_edges, V, BF_in, BF2F, F2E, order, div_per_ed
 
                 point = alphas[vi] * (v1 - v0) + betas[vi] * (v2 - v0) + v0
                 ej = np.linalg.norm(
-                    V_col[offset + ei * delta + np.arange(delta)] - point,
-                    axis=1).argmin()
+                    V_col[offset + ei * delta + np.arange(delta)] - point, axis=1).argmin()
 
                 f_coll[i] = offset + ei * delta + ej
             else:
@@ -141,5 +156,6 @@ def build_phi_3D(num_vertices, num_edges, V, BF_in, BF2F, F2E, order, div_per_ed
     mesh = trimesh.Trimesh(V_col, F_col)
     trimesh.repair.fix_normals(mesh)
     F_col = mesh.faces
+    write_obj("test.obj", V_col, F=F_col)
 
-    return phi, F_col
+    return phi, numpy.array([], dtype=int)
