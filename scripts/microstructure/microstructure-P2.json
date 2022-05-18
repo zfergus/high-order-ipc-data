@@ -12,6 +12,8 @@
     "dt": 0.01,
     "dhat": 1e-5,
     "mu": 0.3,
+    "al_weight": 1e8,
+    "max_al_weight": 1e13,
     "meshes": [{
         "mesh": "../../meshes/microstructure/microstructure_P4.msh",
         "scale": 6,
@@ -31,7 +33,7 @@
     }],
     "body_params": [{
         "id": 1,
-        "E": 6e5,
+        "E": 6e6,
         "nu": 0.48,
         "rho": 1.03
     }],
