@@ -148,10 +148,10 @@ def build_phi_3D(mesh, div_per_edge):
     assert(numpy.linalg.norm(phi @ mesh.V - V_coll, ord=numpy.Inf) < 1e-13)
 
     # Fix face orientation
-    # print("Checking face orientation")
-    # mesh = trimesh.Trimesh(V_coll, F_coll)
-    # trimesh.repair.fix_normals(mesh)
-    # F_coll = mesh.faces
+    print("Checking face orientation")
+    mesh = trimesh.Trimesh(V_coll, F_coll)
+    trimesh.repair.fix_normals(mesh)
+    F_coll = mesh.faces
 
     print(f"|F|={F_coll.shape} |V|={V_coll.shape} |Φ|={phi.shape}")
 

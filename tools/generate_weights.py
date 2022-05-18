@@ -78,16 +78,30 @@ def read_mesh(filename):
     # remove_unreferenced_vertices(mesh, filename)
     V = mesh.points
     F = []
+    cells_type = None
     for cells in mesh.cells:
-        assert(cells.type == "tetra")  # Tet mesh
-        F.append(cells.data.astype(int))
+        if cells_type == None and cells.type == "triangle":
+            cells_type = cells.type
+            F = [cells.data.astype(int)]
+        elif cells.type == "tetra":
+            if cells_type == "tetra":
+                F.append(cells.data.astype(int))
+            else:
+                F = [cells.data.astype(int)]
+    assert(len(F) > 0)
     F = np.vstack(F)
 
-    BF = igl.boundary_facets(F)
-    bmesh = meshio.Mesh(V, [("triangle", BF)])
-    BV2V = remove_unreferenced_vertices(bmesh, filename.with_suffix(".ply"))
-    BV = bmesh.points
-    BF = bmesh.cells[0].data.astype(int)
+    if cells_type == "tetra":
+        BF = igl.boundary_facets(F)
+        bmesh = meshio.Mesh(V, [("triangle", BF)])
+        BV2V = remove_unreferenced_vertices(
+            bmesh, filename.with_suffix(".ply"))
+        BV = bmesh.points
+        BF = bmesh.cells[0].data.astype(int)
+    else:
+        BV2V = None
+        BV = V
+        BF = F
 
     return BV, BF, BV2V, V, F
 
@@ -122,10 +136,9 @@ def main():
 
     BV_coarse, BF_coarse, BV2V_coarse, V_coarse, F_coarse = read_mesh(
         args.coarse_mesh)
-    print()
+    assert(F_coarse.shape[1] == 4)
 
-    BV_fine, BF_fine, BV2V_fine,  V_fine, F_fine = read_mesh(args.fine_mesh)
-    print()
+    BV_fine, BF_fine, BV2V_fine, V_fine, F_fine = read_mesh(args.fine_mesh)
 
     root = pathlib.Path(__file__).parents[1]
     method2dir = {"MVC": "mean_value", "BC": "barycentric",
@@ -145,30 +158,28 @@ def main():
         print(f"Loading W from {hdf5_path}")
         W = scipy.sparse.csc_matrix(load_weights(hdf5_path))
 
-    print()
-
-    hdf5_path = (
-        out_dir / f'{args.fine_mesh.stem}-to-{args.coarse_mesh.stem}.hdf5')
-    if args.force_recompute or not hdf5_path.exists():
-        Winv = compute_W(BV_fine, BF_fine, V_fine, F_fine, BV2V_fine,
-                         BV_coarse, BF_coarse, args.method)
-        # W_full = compute_W(BV_coarse, BF_coarse, V_coarse, F_coarse, BV2V_coarse,
-        #                    V_fine, F_fine, args.method)
-        # Winv = compute_pseudoinverse(W_full)[BV2V_coarse]
-
-        print(f"Saving W⁻¹ to {hdf5_path}")
-        save_weights(hdf5_path, Winv, V_fine.shape[0])
-    else:
-        print(f"Loading W⁻¹ from {hdf5_path}")
-        Winv = scipy.sparse.csc_matrix(load_weights(hdf5_path))
-
-    print(f"\ndensity(W)={density(W)} density(W⁻¹)={density(Winv)}")
-    print(f"\nW.nnz={W.nnz} W⁻¹.nnz={Winv.nnz}")
-
     # Checks error of mapping
-    print("W   Error:", np.linalg.norm(W @ V_coarse - BV_fine, np.inf))
-    # print("W⁻¹ Error:", np.linalg.norm(Winv_ @ V_fine - BV_coarse, np.inf))
-    print("W⁻¹ Error:", np.linalg.norm(Winv @ V_fine - BV_coarse, np.inf))
+    print(f"density(W)={density(W)} W.nnz={W.nnz}")
+    print("W Error:", np.linalg.norm(W @ V_coarse - BV_fine, np.inf))
+
+    if F_fine.shape[1] == 4:
+        hdf5_path = (
+            out_dir / f'{args.fine_mesh.stem}-to-{args.coarse_mesh.stem}.hdf5')
+        if args.force_recompute or not hdf5_path.exists():
+            Winv = compute_W(BV_fine, BF_fine, V_fine, F_fine, BV2V_fine,
+                             BV_coarse, BF_coarse, args.method)
+            # W_full = compute_W(BV_coarse, BF_coarse, V_coarse, F_coarse, BV2V_coarse,
+            #                    V_fine, F_fine, args.method)
+            # Winv = compute_pseudoinverse(W_full)[BV2V_coarse]
+
+            print(f"Saving W⁻¹ to {hdf5_path}")
+            save_weights(hdf5_path, Winv, V_fine.shape[0])
+        else:
+            print(f"Loading W⁻¹ from {hdf5_path}")
+            Winv = scipy.sparse.csc_matrix(load_weights(hdf5_path))
+
+        print(f"density(W⁻¹)={density(Winv)} W⁻¹.nnz={Winv.nnz}")
+        print("W⁻¹ Error:", np.linalg.norm(Winv @ V_fine - BV_coarse, np.inf))
 
 
 if __name__ == "__main__":

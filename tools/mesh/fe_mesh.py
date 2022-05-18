@@ -30,17 +30,18 @@ class FEMesh:
         self.V = mesh.points
 
         assert(len(mesh.cells) > cell_i)
-        cell_type = mesh.cells[cell_i].type
-        self.order = tetra_type_to_order[cell_type]
 
-        if cell_type == "triangle":
-            self.T = mesh.cells[cell_i].data
-        elif "tetra" in cell_type:
-            self.T = (
-                mesh.cells[cell_i].data[:, gmsh_to_basis_order[self.order]])
-        else:
-            raise NotImplementedError(
-                f"FEMesh not implemented for {cell_type}")
+        for cell in mesh.cells:
+            if cell.type == "triangle":
+                self.T = cell.data
+                break
+            elif "tetra" in cell.type:
+                self.order = tetra_type_to_order[cell.type]
+                self.T = cell.data[:, gmsh_to_basis_order[self.order]]
+                break
+            # else:
+            #     raise NotImplementedError(
+            #         f"FEMesh not implemented for {cell.type}")
 
         *_, J = igl.remove_unreferenced(self.V, self.P1())
         self.in_vertex_ids = J
@@ -48,7 +49,8 @@ class FEMesh:
         self.in_edges = self.edges()
 
         # if self.order != 1:
-        # TODO: Reorder the nodes to be [V; E; F; C] and set to input positions
+        #     # TODO: Reorder the nodes to be [V; E; F; C] and set to input positions
+        #     self.attach_higher_order_nodes(self.order)
 
     def dim(self):
         return self.V.shape[1]
@@ -95,6 +97,8 @@ class FEMesh:
                 assert(i[1] > 3 or (self.V[vi_new] == V_old[T_old[i]]).all())
                 V_new[vi_new] = V_old[T_old[i]]
             self.V = V_new
+            # self.save("test.msh")
+            # exit()
 
         self.order = order
 
