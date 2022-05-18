@@ -48,6 +48,10 @@ def parse_args():
     parser.add_argument('-c,--collision-mesh',
                         dest="collision_mesh", type=pathlib.Path, default=None)
     parser.add_argument('-o,--order', dest="order",
+                        help="order of the displacement",
+                        type=int, default=2, choices=range(1, 5))
+    parser.add_argument('-g,--geometric', dest="geom_order",
+                        help="order of the geometric basis",
                         type=int, default=2, choices=range(1, 5))
     parser.add_argument('-m', dest="div_per_edge", type=int, default=10)
     return parser.parse_args()
@@ -67,25 +71,10 @@ def main():
         Phi, V_col, E_col, F_col = build_collision_mesh(
             fe_mesh, args.div_per_edge)
 
-        out_coll_mesh = (args.mesh.parent /
-                         f"{args.mesh.stem}-collision-mesh.obj")
+        out_coll_mesh = (
+            args.mesh.parent / f"{args.mesh.stem}-P{args.order}-collision-mesh.obj")
         print(f"saving collision mesh to {out_coll_mesh}")
         write_obj(out_coll_mesh, V_col, E=E_col, F=F_col)
-
-        # P = []
-        # uv, _ = sample_tet(6)
-        # uv[:, 2] = 0
-        # for tet in fe_mesh.T:
-        #     nodes = tet[phi_3D_to_2D[fe_mesh.order]
-        #                 [numpy.random.randint(0, 4)]]
-        #     p = np.zeros((uv.shape[0], 3))
-        #     for i, v in enumerate(fe_mesh.V[nodes]):
-        #         p += hat_phis_2D[fe_mesh.order][i](
-        #             uv[:, 0], uv[:, 1]).reshape(-1, 1) * np.tile(v, (uv.shape[0], 1))
-        #     P.append(p)
-        # P = np.vstack(P)
-        # write_obj(out_coll_mesh, P)
-        # exit(0)
 
         out_weight = (root_dir / "weights" / "higher_order" /
                       f"{args.mesh.stem}-P{args.order}.hdf5")
@@ -99,7 +88,8 @@ def main():
                       f"{args.mesh.stem}-P{args.order}-to-{args.collision_mesh.stem}.hdf5")
 
     print(f"saving weights to {out_weight}")
-    save_weights(out_weight, Phi, edges=fe_mesh.E, faces=fe_mesh.F)
+    save_weights(out_weight, Phi, vertices=fe_mesh.in_vertex_ids,
+                 edges=fe_mesh.in_edges, faces=fe_mesh.in_faces)
 
     print("W Error:", np.linalg.norm(Phi @ fe_mesh.V - V_col, np.inf))
 

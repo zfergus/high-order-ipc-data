@@ -14,7 +14,7 @@ def labeled_tqdm(data, label):
     return pbar
 
 
-def save_weights(path, W, edges=None, faces=None):
+def save_weights(path, W, vertices=None, edges=None, faces=None):
     """
     Save a weight matrix.
     Optionally: save the edge and/or face matricies
@@ -32,6 +32,8 @@ def save_weights(path, W, edges=None, faces=None):
     else:
         h5f.create_dataset('weights', data=W)
 
+    if vertices is not None:
+        h5f.create_dataset("ordered_vertices", data=vertices)
     if edges is not None:
         h5f.create_dataset("ordered_edges", data=edges)
     if faces is not None:

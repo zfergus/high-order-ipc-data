@@ -1,14 +1,4 @@
 import numpy
-import torch
-
-
-# def pow(x, n):
-#     # if type(x) is numpy.array or type(x) is numpy.ndarray or type(x) is numpy.float64:
-#     #     return numpy.power(x, n)
-#     # else:
-#     #     return torch.pow(x, n)
-#     return x**n
-
 
 hat_phis_1D = {
     1: [lambda x: 1 - x, lambda x: x],
@@ -330,31 +320,8 @@ hat_phis_3D = {
 edges_3D_order = numpy.array([[0, 1], [1, 2], [2, 0], [0, 3], [1, 3], [2, 3]])
 faces_3D_order = numpy.array([[0, 1, 2], [0, 1, 3], [1, 2, 3], [3, 2, 0]])
 face_node_3D_order = {
-    1: None,
-    2: None,
     3: numpy.zeros(4, dtype=int),
     4: numpy.array([[0, 1, 2], [0, 1, 2], [0, 1, 2], [2, 0, 1]])
-}
-
-
-gmsh_to_basis_order = {
-    1: [0, 1, 2, 3],
-    2: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-    3: [0, 1, 2, 3,  # vertices
-        4, 5,    6, 7,    8, 9,    11, 10,    15, 14,    13, 12,  # edges
-        16, 17, 19, 18],  # faces
-    4: [0, 1, 2, 3,  # vertices
-        4, 5, 6,  7, 8, 9,  10, 11, 12,  15, 14, 13,  21, 20, 19,  18, 17, 16,  # edges
-        22, 23, 24,  25, 27, 26,  32, 31, 33,  30, 29, 28,   # faces
-        34],  # cell
-}
-
-basis_order_to_gmsh = {
-    1: [0, 1, 2, 3],
-    2: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-    3: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 10, 15, 14, 13, 12, 16, 17, 19, 18],
-    4: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 14, 13, 21, 20, 19, 18,
-        17, 16, 22, 23, 24, 25, 27, 26, 33, 32, 31, 29, 28, 30, 34],
 }
 
 
@@ -405,19 +372,31 @@ def cell_nodes(v1, v2, v3, v4, order):
         raise NotImplementedError(f"P{order} not implemented!")
 
 
-phi_3D_to_2D = {
-    1: [[0, 1, 2], [0, 1, 3], [1, 2, 3], [0, 2, 3]],
-    2: [[0, 1, 2, 4, 5, 6], [0, 1, 3, 4, 7, 8], [1, 2, 3, 5, 9, 8], [0, 2, 3, 6, 7, 9]],
-    3: [[0, 1, 2, 4, 5, 6, 7, 9, 8, 16], [0, 1, 3, 4, 5, 12, 13, 10, 11, 17], [1, 2, 3, 6, 7, 14, 15, 12, 13, 18], [0, 2, 3, 9, 8, 14, 15, 10, 11, 19]],
-    4: [[0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 22, 23, 24], [0, 1, 3, 4, 5, 6, 16, 17, 18, 15, 14, 13, 25, 26, 27],
-        [1, 2, 3, 7, 8, 9, 19, 20, 21, 18, 17, 16, 28, 29, 30], [0, 2, 3, 12, 11, 10, 19, 20, 21, 15, 14, 13, 33, 32, 31]]
+gmsh_to_basis_order = {
+    1: [0, 1, 2, 3],
+    2: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    3: [0, 1, 2, 3,  # vertices
+        4, 5,    6, 7,    8, 9,    11, 10,    15, 14,    13, 12,  # edges
+        16, 17, 19, 18],  # faces
+    4: [0, 1, 2, 3,  # vertices
+        4, 5, 6,  7, 8, 9,  10, 11, 12,  15, 14, 13,  21, 20, 19,  18, 17, 16,  # edges
+        22, 23, 24,  25, 27, 26,  32, 31, 33,  30, 29, 28,   # faces
+        34],  # cell
 }
+
+basis_order_to_gmsh = {
+    1: [0, 1, 2, 3],
+    2: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    3: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 10, 15, 14, 13, 12, 16, 17, 19, 18],
+    4: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 14, 13, 21, 20, 19, 18,
+        17, 16, 22, 23, 24, 25, 27, 26, 33, 32, 31, 29, 28, 30, 34],
+}
+
 
 if __name__ == "__main__":
     import itertools
-    import sympy
 
-    x, y, z = sympy.symbols("x y z")
+    order = 2
 
     V = numpy.array([
         [0, 0, 0],
@@ -426,8 +405,6 @@ if __name__ == "__main__":
         [0, 0, 1],
     ], dtype=float)
 
-    order = 4
-
     E = edges_3D_order
     EV = []
     for e in E:
@@ -435,41 +412,21 @@ if __name__ == "__main__":
     EV = numpy.vstack(EV)
 
     F = faces_3D_order
-    FV = []
-    for fi, f in enumerate(F):
-        FV.append(face_nodes(*V[f], order)[face_node_3D_order[order][fi]])
-    FV = numpy.vstack(FV)
+    if order > 2:
+        FV = []
+        for fi, f in enumerate(F):
+            FV.append(face_nodes(*V[f], order)[face_node_3D_order[order][fi]])
+        FV = numpy.array(FV)
 
     CV = numpy.array(cell_nodes(*V, order))
 
-    # n = 2
-    # for k, xyz in enumerate([(x, y, 0), (x, 0, y), (1-x-y, x, y), (0, x, y)]):
-    #     map = []
-    #     for i, phi_i in enumerate(hat_phis_3D[n]):
-    #         for j, phi_j in enumerate(hat_phis_2D[n]):
-    #             if (phi_i(*xyz) - phi_j(x, y)).simplify() == 0:
-    #                 map.append((j, i))
-    #             # if i == 0 and j == 0 and abs((phi_i(*xyz) - phi_j(x, y)).simplify().subs([(x, 1), (y, 1)])) < 1e-13:
-    #             #     map[j] = i
-    #     print(map)
-    #     # print([map[i] for i in range(0, len(hat_phis_2D[n]))])
-
-    # for perm in itertools.permutations(numpy.arange(4)):
-    #     perm = numpy.array(perm)
-
-    # FV = []
-    # for f in F[perm]:
-    #     FV.append(face_nodes(*V[f], order))
-    # FV = numpy.vstack(FV)
-
-    if order == 4:
+    if order == 2:
+        N = numpy.vstack([V, EV])
+    elif order == 3:
+        N = numpy.vstack([V, EV, FV])
+    elif order == 4:
         N = numpy.vstack([V, EV, FV, CV])
         assert(N.shape[0] == 35)
-    else:
-        N = numpy.vstack([V, EV, FV])
-    print([hat_phis_3D[order][i](*n) for i, n in enumerate(N)][20:])
-    if all([abs(hat_phis_3D[order][i](*n) - 1) < 1e-12 for i, n in enumerate(N)]):
-        print(F)
-        # break
-    # N = numpy.vstack([V, EV, FV])
-    # print([hat_phis_3D[3][i](*n) for i, n in enumerate(N)])
+    print([hat_phis_3D[order][i](*n) for i, n in enumerate(N)])
+    # if all([abs(hat_phis_3D[order][i](*n) - 1) < 1e-12 for i, n in enumerate(N)]):
+    #     print(F)
