@@ -7,7 +7,7 @@ from weights import bases
 from mesh.utils import faces
 
 
-def attach_higher_order_nodes(V_P1, F, E, T_P1, order):
+def attach_higher_order_nodes(V_P1, E, F, T_P1, order):
     if order == 1:
         return V_P1, T_P1
 

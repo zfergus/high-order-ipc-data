@@ -120,14 +120,15 @@ def build_phi_3D(mesh, div_per_edge):
         ordering = np.load(ordering_filename)
         indices = ordering["indices"]
         inverse = ordering["inverse"]
+        # raise Exception("")
     except Exception as e:
         print(f"\tFailed to load from file because {e}")
         print("\tCreating unique order")
-        _, indices, inverse = (
-            np.unique(V_coll, return_index=True, return_inverse=True, axis=0))
-
+        _, indices, inverse, _ = igl.remove_duplicate_vertices(
+            V_coll, F_coll, epsilon=1e-7)
+        # _, indices, inverse = (
+        #     np.unique(V_coll, return_index=True, return_inverse=True, axis=0))
         indices, arg_indices = np.sort(indices), np.argsort(indices)
-
         for i, inv in enumerate(inverse):
             new_inv = np.where(inv == arg_indices)[0]
             assert(new_inv.size == 1)

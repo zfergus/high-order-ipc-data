@@ -82,11 +82,11 @@ class FEMesh:
             T_old = self.T.copy()
 
         # Remove any currently attached HO nodes
-        V, T, IM, J = igl.remove_unreferenced(self.V, self.P1())
+        V, self.T, *_ = igl.remove_unreferenced(self.V, self.P1())
 
         # Replace the nodes and tets with the HO ones
         self.V, self.T = attach_higher_order_nodes(
-            V, self.edges(), self.faces(), T, order)
+            V, self.edges(), self.faces(), self.T, order)
         assert((self.V[:V.shape[0]] == V).all())
 
         if order == self.order:
