@@ -88,8 +88,9 @@ def main():
                       f"{args.mesh.stem}-P{args.order}-to-{args.collision_mesh.stem}.hdf5")
 
     print(f"saving weights to {out_weight}")
-    save_weights(out_weight, Phi, vertices=fe_mesh.in_vertex_ids,
-                 edges=fe_mesh.in_edges, faces=fe_mesh.in_faces)
+    save_weights(
+        out_weight, Phi, fe_mesh.n_vertices(), vertices=fe_mesh.in_vertex_ids,
+        edges=fe_mesh.in_edges, faces=fe_mesh.in_faces)
 
     print("W Error:", np.linalg.norm(Phi @ fe_mesh.V - V_col, np.inf))
 

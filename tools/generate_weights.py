@@ -140,7 +140,7 @@ def main():
         W = compute_W(BV_coarse, BF_coarse, V_coarse, F_coarse, BV2V_coarse,
                       BV_fine, BF_fine, args.method)
         print(f"Saving W to {hdf5_path}")
-        save_weights(hdf5_path, W)
+        save_weights(hdf5_path, W, V_coarse.shape[0])
     else:
         print(f"Loading W from {hdf5_path}")
         W = scipy.sparse.csc_matrix(load_weights(hdf5_path))
@@ -157,7 +157,7 @@ def main():
         # Winv = compute_pseudoinverse(W_full)[BV2V_coarse]
 
         print(f"Saving W⁻¹ to {hdf5_path}")
-        save_weights(hdf5_path, Winv)
+        save_weights(hdf5_path, Winv, V_fine.shape[0])
     else:
         print(f"Loading W⁻¹ from {hdf5_path}")
         Winv = scipy.sparse.csc_matrix(load_weights(hdf5_path))

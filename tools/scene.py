@@ -70,7 +70,7 @@ def main():
     print(f"Saving scene weights to {weights_path}")
     W = scipy.sparse.block_diag(weights)
     assert(W.shape[0] == V.shape[0])
-    save_weights(weights_path, W)
+    save_weights(weights_path, W, W.shape[1])
 
 
 if __name__ == "__main__":

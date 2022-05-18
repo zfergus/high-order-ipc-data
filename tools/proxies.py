@@ -158,7 +158,8 @@ def main():
         str(args.outdir / f"{args.mesh.stem}_proxies.msh"), fem_mesh)
     # pymesh.save_mesh(str(args.outdir / f"contact.obj"),
     #                  pymesh.form_mesh(weights @ fem_mesh.vertices, mesh.faces))
-    save_weights(args.outdir / f"{args.mesh.stem}_proxy_weights.hdf5", weights)
+    save_weights(args.outdir / f"{args.mesh.stem}_proxy_weights.hdf5",
+                 weights, fem_mesh.vertices.shape[0])
 
 
 if __name__ == "__main__":
