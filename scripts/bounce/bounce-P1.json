@@ -24,8 +24,8 @@
         "rho": 700
     }],
     "collision_mesh": {
-        "mesh": "../../meshes/sphere/P3-coarse-P3-collision-mesh.obj",
-        "linear_map": "../../weights/barycentric/P1-coarse-to-P3-coarse-P3-collision-mesh.hdf5",
+        "mesh": "../../meshes/sphere/P4-coarse-P4-collision-mesh.obj",
+        "linear_map": "../../weights/barycentric/P1-coarse-to-P4-coarse-P4-collision-mesh.hdf5",
         "scale": 0.11938
     },
     "obstacles": [{
