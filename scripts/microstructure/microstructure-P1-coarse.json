@@ -13,7 +13,7 @@
     "dhat": 1e-5,
     "mu": 0.3,
     "meshes": [{
-        "mesh": "../../meshes/microstructure/microstructure_P4.msh",
+        "mesh": "../../meshes/microstructure/microstructure_P1_coarse.msh",
         "scale": 6,
         "body_id": 1
     }],
@@ -35,11 +35,6 @@
         "nu": 0.48,
         "rho": 1.03
     }],
-    "collision_mesh": {
-        "mesh": "../../meshes/microstructure/microstructure_P4-P4-collision-mesh.obj",
-        "linear_map": "../../weights/higher_order/microstructure_P4-P2.hdf5",
-        "scale": 6
-    },
     "obstacles":[{
         "mesh": "../../meshes/cube/cube.ply",
         "position": [3, 6.12, 3],

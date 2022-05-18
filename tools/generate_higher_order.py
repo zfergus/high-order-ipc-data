@@ -65,7 +65,7 @@ def main():
     fe_mesh = FEMesh(args.mesh)
     if fe_mesh.order != args.order:
         fe_mesh.attach_higher_order_nodes(args.order)
-    fe_mesh.save("fem_mesh.msh")
+    # fe_mesh.save("fem_mesh.msh")
 
     if args.collision_mesh is None:
         Phi, V_col, E_col, F_col = build_collision_mesh(
