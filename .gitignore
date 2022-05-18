@@ -231,13 +231,13 @@ cython_debug/
 results/
 results
 kinematic-dress/
-tools/output
-*__sf.obj
-*_.csv
-*__tracked_surface.stl
-sparse.csv
-phi.hdf5
-/*.obj
-/*.vtu
-*_config.txt
-notebooks/rhos.txt
+# tools/output
+# *__sf.obj
+# *_.csv
+# *__tracked_surface.stl
+# sparse.csv
+# phi.hdf5
+# /*.obj
+# /*.vtu
+# *_config.txt
+# notebooks/rhos.txt
