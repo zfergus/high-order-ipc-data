@@ -34,8 +34,8 @@
         "dimensions": [1, 0, 1]
     }],
     "skip_frame": 10,
-    "vismesh_rel_area": 1e-05,
-    "export": {
+    "#vismesh_rel_area": 1e-05,
+    "#export": {
         "high_order_mesh": false,
         "wireframe": true
     }
