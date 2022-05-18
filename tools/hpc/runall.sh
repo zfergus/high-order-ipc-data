@@ -12,12 +12,16 @@ SCRIPTS=(
     # "$SCRIPTS_ROOT/stress-tests/mat-twist-P1-coarse.json"
     # "$SCRIPTS_ROOT/stress-tests/mat-twist-P1.json"
     # "$SCRIPTS_ROOT/stress-tests/mat-twist-P2.json"
-    "$SCRIPTS_ROOT/graspsim/grasp-gargoyle.json"
+    # "$SCRIPTS_ROOT/graspsim/grasp-gargoyle.json"
     # "$SCRIPTS_ROOT/graspsim/grasp-gargoyle-baseline.json"
     # "$SCRIPTS_ROOT/baseline/full-full.json"
     # "$SCRIPTS_ROOT/baseline/full-reduced.json"
     # "$SCRIPTS_ROOT/baseline/reduced-full.json"
     # "$SCRIPTS_ROOT/baseline/reduced-reduced.json"
+    # "$SCRIPTS_ROOT/microstructure/microstructure-P1-coarse.json"
+    # "$SCRIPTS_ROOT/microstructure/microstructure-P1-medium.json"
+    # "$SCRIPTS_ROOT/microstructure/microstructure-P1-fine.json"
+    "$SCRIPTS_ROOT/microstructure/microstructure-P2.json"
 )
 
 LOGS_DIR=$SCRATCH/decoupled-contact/results/logs
