@@ -18,10 +18,14 @@ SCRIPTS=(
     # "$SCRIPTS_ROOT/baseline/full-reduced.json"
     # "$SCRIPTS_ROOT/baseline/reduced-full.json"
     # "$SCRIPTS_ROOT/baseline/reduced-reduced.json"
-    # "$SCRIPTS_ROOT/microstructure/microstructure-P1-coarse.json"
-    # "$SCRIPTS_ROOT/microstructure/microstructure-P1-medium.json"
-    # "$SCRIPTS_ROOT/microstructure/microstructure-P1-fine.json"
-    "$SCRIPTS_ROOT/microstructure/microstructure-P2.json"
+    #"$SCRIPTS_ROOT/microstructure/microstructure-P1-coarse.json"
+    "$SCRIPTS_ROOT/microstructure/microstructure-P1-medium-fixAL.json"
+    "$SCRIPTS_ROOT/microstructure/microstructure-P1-fine-fixAL.json"
+    # "$SCRIPTS_ROOT/microstructure/microstructure-P2.json"
+    # "$SCRIPTS_ROOT/bounce/bounce-P1-baseline-coarse.json"
+    # "$SCRIPTS_ROOT/bounce/bounce-P1-baseline-fine.json"
+    # "$SCRIPTS_ROOT/bounce/bounce-P1.json"
+    # "$SCRIPTS_ROOT/bounce/bounce-P4.json"
 )
 
 LOGS_DIR=$SCRATCH/decoupled-contact/results/logs
