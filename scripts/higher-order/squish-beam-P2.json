@@ -1,0 +1,40 @@
+{
+    "default_params": "../defaults.json",
+    "discr_order": 2,
+    "problem_params": {
+        "rhs":[0,0,0]
+    },
+    "tend": 5,
+    "time_steps": 50,
+    "mu": 0.5,
+    "friction_iterations": 10,
+    "meshes": [{
+        "mesh": "../../meshes/beam-bending/beam-bending.msh",
+        "position": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "body_id": 1
+    }],
+    "body_params": [{
+        "id": 1,
+        "E": 1e7,
+        "nu": 0.4,
+        "rho": 1000
+    }],
+    "obstacles": [{
+        "mesh": "../../meshes/obstacles/plane.obj",
+        "position": [0, -1, 0],
+        "rotation": [0, 0, 0],
+        "dimensions": [10, 0, 10],
+        "#displacement": [0, "min(10-t, t)", 0]
+    },
+    {
+        "mesh": "../../meshes/obstacles/plane.obj",
+        "position": [0, 8, 0],
+        "rotation": [10, 0, 0],
+        "displacement": [0, "max(t-10, -t)", 0]
+    }],
+    "collision_mesh": {
+        "mesh": "../../meshes/beam-bending/beam-bending-collision-mesh-P2.obj",
+        "linear_map": "../../weights/higher_order/beam-bending-P2.hdf5"
+    }
+}
