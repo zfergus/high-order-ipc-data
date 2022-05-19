@@ -90,13 +90,13 @@ class VolumetricClosestPointQuery:
             return self.closest_point_PN(p)
 
     def closest_point_P1(self, p) -> tuple[int, np.ndarray]:
-        assert(self.Tup.shape == self.T.shape)
+        assert(self.T_upsampled.shape == self.T.shape)
         limits = np.vstack([p, p]).T
         tis = self.tree.overlap_values(AABB(limits))
         bcs = igl.barycentric_coordinates_tet(
             np.tile(p, (len(tis), 1)),
-            self.V[self.F[tis, 0]], self.V[self.F[tis, 1]],
-            self.V[self.F[tis, 2]], self.V[self.F[tis, 3]])
+            self.V[self.T[tis, 0]], self.V[self.T[tis, 1]],
+            self.V[self.T[tis, 2]], self.V[self.T[tis, 3]])
         bcs = bcs.reshape(-1, 4)
 
         for ti, bc in zip(tis, bcs):
@@ -105,13 +105,13 @@ class VolumetricClosestPointQuery:
 
         # point must be on the exterior of the mesh, so find the closest point on the surface
         _, _, bfis = self.proximity_query.on_surface(p.reshape(1, 3))
-        ti = self.BF2F[bfis[0]]
+        ti = self.BF2T[bfis[0]]
         bc = igl.barycentric_coordinates_tet(
             p.reshape(-1, 3).copy(),
-            self.V[self.F[ti, 0]].copy().reshape(1, 3).copy(),
-            self.V[self.F[ti, 1]].copy().reshape(1, 3).copy(),
-            self.V[self.F[ti, 2]].copy().reshape(1, 3).copy(),
-            self.V[self.F[ti, 3]].copy().reshape(1, 3).copy())
+            self.V[self.T[ti, 0]].copy().reshape(1, 3).copy(),
+            self.V[self.T[ti, 1]].copy().reshape(1, 3).copy(),
+            self.V[self.T[ti, 2]].copy().reshape(1, 3).copy(),
+            self.V[self.T[ti, 3]].copy().reshape(1, 3).copy())
         return ti, bc
 
     def uvw0(self, p, ti):

@@ -37,7 +37,7 @@
         "nu": 0.48,
         "rho": 1.03
     }],
-    "collision_mesh": {
+    "#collision_mesh": {
         "mesh": "../../meshes/microstructure/microstructure_P4-P4-collision-mesh.obj",
         "linear_map": "../../weights/higher_order/microstructure_P4-P3.hdf5",
         "scale": 6

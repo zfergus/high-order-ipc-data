@@ -51,9 +51,9 @@ def parse_args():
     parser.add_argument('-m', dest="div_per_edge", type=int, default=10)
     parser.add_argument('-c,--collision-mesh',
                         dest="collision_mesh", type=pathlib.Path, default=None)
-    parser.add_argument('-g,--use-geom', dest="use_geom", action="store_true",
-                        help="use the geometric basis of the mesh",
-                        default=False)
+    # parser.add_argument('-g,--use-geom', dest="use_geom", action="store_true",
+    #                     help="use the geometric basis of the mesh",
+    #                     default=False)
     return parser.parse_args()
 
 
@@ -63,16 +63,14 @@ def main():
 
     # Triangular mesh
     fe_mesh = FEMesh(args.mesh)
+
+    # These are the geometric bases (even if they are P1 and we attach node it
+    # will still be a flat surface).
     V_geom = fe_mesh.V.copy()
     T_geom = fe_mesh.T.copy()
 
     if fe_mesh.order != args.order:
         fe_mesh.attach_higher_order_nodes(args.order)
-
-    if not args.use_geom:
-        V_geom = fe_mesh.V
-        T_geom = fe_mesh.T
-    # fe_mesh.save("fem_mesh.msh")
 
     if args.collision_mesh is None:
         Phi, V_col, E_col, F_col = build_collision_mesh(
