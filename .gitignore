@@ -241,3 +241,4 @@ phi.hdf5
 /*.vtu
 *_config.txt
 notebooks/rhos.txt
+/*.npz
