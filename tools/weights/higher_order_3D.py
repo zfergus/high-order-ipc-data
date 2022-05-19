@@ -7,11 +7,9 @@ import trimesh
 
 import igl
 
-
 from .bases import *
 from .utils import labeled_tqdm
 from mesh.utils import boundary_to_full, faces_to_edges, sorted_tuple, faces
-from mesh.invert_gmapping import sample_tet
 from mesh.write_obj import write_obj
 
 

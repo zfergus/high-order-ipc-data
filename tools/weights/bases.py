@@ -330,6 +330,8 @@ nodes_per_face = {1: 0, 2: 0, 3: 1, 4: 3}
 nodes_per_cell = {1: 0, 2: 0, 3: 0, 4: 1}
 nodes_per_element = {1: 4, 2: 10, 3: 20, 4: 35}
 
+nodes_count_to_order = {4: 1, 10: 2, 20: 3, 35: 4}
+
 
 def edge_nodes(v1, v2, order):
     if order == 1:

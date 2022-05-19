@@ -2,160 +2,117 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from weights.bases import hat_phis_3D, gmsh_to_basis_order
+from weights.bases import hat_phis_3D
+from weights.utils import labeled_tqdm
 
 
-def p_eval(order, local_index, uv):
-    return hat_phis_3D[order][local_index](uv[-3:])
-
-
-def add_tet(tmp, V):
-    if tmp[0] >= 0 and tmp[1] >= 0 and tmp[2] >= 0 and tmp[3] >= 0:
-        e0 = V[tmp[1], :] - V[tmp[0], :]
-        e1 = V[tmp[2], :] - V[tmp[0], :]
-        e2 = V[tmp[3], :] - V[tmp[0], :]
-
-        vol = np.dot(np.cross(e0, e1), e2)
-        if vol < 0:
-            T = np.array([tmp[0], tmp[1], tmp[2], tmp[3]])
-        else:
-            T = np.array([tmp[0], tmp[1], tmp[3], tmp[2]])
-
-        return T
+def zero_like(x, rtype=None):
+    if rtype is None:
+        rtype = type(x)
+    if rtype is np.ndarray or rtype is np.array:
+        return np.zeros_like(x)
     else:
-        return None
+        return torch.zeros_like(x)
 
 
-def sample_tet(nn):
-    n = nn
-    delta = 1. / (n - 1.)
-
-    T = np.zeros(((n - 1) * (n - 1) * (n - 1) * 6, 4))
-    V = np.zeros((n * n * n, 3))
-    mmap = -np.ones(n * n * n, dtype=int)
-
-    index = 0
-    for i in range(n):
-        for j in range(n):
-            for k in range(n):
-                if i + j + k >= n:
-                    continue
-                mmap[(i + j * n) * n + k] = index
-                V[index, :] = [i * delta, j * delta, k * delta]
-                index += 1
-
-    V = V[:index, :]
-
-    index = 0
-    for i in range(n-1):
-        for j in range(n-1):
-            for k in range(n-1):
-                indices = [(i + j * n) * n + k,
-                           (i + 1 + j * n) * n + k,
-                           (i + 1 + (j + 1) * n) * n + k,
-                           (i + (j + 1) * n) * n + k,
-                           (i + j * n) * n + k + 1,
-                           (i + 1 + j * n) * n + k + 1,
-                           (i + 1 + (j + 1) * n) * n + k + 1,
-                           (i + (j + 1) * n) * n + k + 1]
-
-                tmp = [mmap[indices[1 - 1]], mmap[indices[2 - 1]],
-                       mmap[indices[4 - 1]], mmap[indices[5 - 1]]]
-                tmp = add_tet(tmp, V)
-                if tmp is not None:
-                    T[index, :] = tmp
-                    index += 1
-
-                tmp = [mmap[indices[6 - 1]], mmap[indices[3 - 1]],
-                       mmap[indices[7 - 1]], mmap[indices[8 - 1]]]
-                tmp = add_tet(tmp, V)
-                if tmp is not None:
-                    T[index, :] = tmp
-                    index += 1
-
-                tmp = [mmap[indices[5 - 1]], mmap[indices[2 - 1]],
-                       mmap[indices[6 - 1]], mmap[indices[4 - 1]]]
-                tmp = add_tet(tmp, V)
-                if tmp is not None:
-                    T[index, :] = tmp
-                    index += 1
-
-                tmp = [mmap[indices[5 - 1]], mmap[indices[4 - 1]],
-                       mmap[indices[8 - 1]], mmap[indices[6 - 1]]]
-                tmp = add_tet(tmp, V)
-                if tmp is not None:
-                    T[index, :] = tmp
-                    index += 1
-
-                tmp = [mmap[indices[4 - 1]], mmap[indices[2 - 1]],
-                       mmap[indices[6 - 1]], mmap[indices[3 - 1]]]
-                tmp = add_tet(tmp, V)
-                if tmp is not None:
-                    T[index, :] = tmp
-                    index += 1
-
-                tmp = [mmap[indices[3 - 1]], mmap[indices[4 - 1]],
-                       mmap[indices[8 - 1]], mmap[indices[6 - 1]]]
-                tmp = add_tet(tmp, V)
-                if tmp is not None:
-                    T[index, :] = tmp
-                    index += 1
-
-    T = T[:index, :]
-
-    return V, T
+def norm_sq(x):
+    assert(len(x.shape) == 1)
+    return x.dot(x)
 
 
-def gmapping(order, uv, pts):
-    if type(pts) is np.ndarray or type(pts) is np.array:
-        res = np.zeros_like(uv)
+def hstack(xs, rtype):
+    if rtype is np.ndarray or rtype is np.array:
+        return np.hstack(xs)
     else:
-        res = torch.zeros_like(uv)
-
-    rr = gmsh_to_basis_order[order]
-
-    for i in range(pts.shape[0]):
-        bb = p_eval(order, i, uv)
-        if len(bb.shape) == 0:
-            res += pts[rr[i], :] * bb
-        else:
-            for d in range(3):
-                res[:, d] += pts[rr[i], d] * bb
-
-    return res
+        return torch.hstack(xs)
 
 
-def gmapping_energy(order, uv, pts, target):
-    img_p = gmapping(order, uv, pts)
-
-    if type(pts) is np.array or type(pts) is np.ndarray:
-        return np.linalg.norm(img_p - target)**2
+def gmapping(order, uvw, pts):
+    if len(uvw.shape) == 1:
+        u, v, w = uvw[0], uvw[1], uvw[2]
+        Phi = hstack([phi(u, v, w) for phi in hat_phis_3D[order]], type(uvw))
     else:
-        return torch.norm(img_p - target)**2
+        u, v, w = uvw[:, 0], uvw[:, 1], uvw[:, 2]
+        Phi = hstack([
+            phi(u, v, w).reshape(-1, 1) for phi in hat_phis_3D[order]],
+            type(uvw))
+    return Phi @ pts.reshape(-1, 3)
 
 
-def invert_gmapping(order, uv0, pts, target, eps=1e-10):
-    tuv0 = torch.tensor(uv0, requires_grad=True, dtype=torch.float64)
+def gmapping_energy(order, uvw, pts, target):
+    return 0.5 * norm_sq(target - gmapping(order, uvw, pts))
+
+
+def invert_gmapping(order, uvw0, pts, target, eps=1e-4, ignore_uvw=True):
+    if ignore_uvw:
+        uvw = torch.tensor(
+            np.full(3, 1/4), requires_grad=True, dtype=torch.float64)
+    else:
+        uvw = torch.tensor(uvw0, requires_grad=True, dtype=torch.float64)
     tpts = torch.tensor(pts, dtype=torch.float64)
-    tt = torch.tensor(target, dtype=torch.float64)
+    ttarget = torch.tensor(target, dtype=torch.float64)
 
-    optimizer = torch.torch.optim.LBFGS([tuv0],
-                                        lr=0.1,
-                                        history_size=20,
-                                        max_iter=10,
-                                        line_search_fn="strong_wolfe")
+    optimizer = torch.torch.optim.LBFGS(
+        [uvw], lr=0.5, history_size=10, max_iter=10,
+        line_search_fn="strong_wolfe")
+    # optimizer = torch.optim.Adam([uvw])
 
-    def f(uv): return gmapping_energy(order, uv, tpts, tt)
-    vv = []
+    def f(uvw): return gmapping_energy(order, uvw, tpts, ttarget)
 
-    for i in tqdm(range(1000)):
+    prev_dist = np.Inf
+    for i in range(100 if ignore_uvw else int(1e5)):
         optimizer.zero_grad()
-        objective = f(tuv0)
+        objective = f(uvw)
         objective.backward()
-        optimizer.step(lambda: f(tuv0))
-        vv.append(objective.item())
+        # TODO check grad norm uvw.grad
+        optimizer.step(lambda: f(uvw))
+        dist = np.sqrt(objective.item())
+        if dist <= eps or abs(prev_dist - dist) < 1e-10:
+            break
+        prev_dist = dist
 
+    if dist > eps:
+        if ignore_uvw:
+            return invert_gmapping(
+                order, uvw0, pts, target, eps=eps, ignore_uvw=False)
+        else:
+            return np.full(3, np.Inf)  # not converges, so dont use this value
+
+    return uvw.detach().numpy()
+
+
+def closest_point(order, uvw0, pts, target, eps=1e-10):
+    uvw = torch.tensor(uvw0, requires_grad=True, dtype=torch.float64)
+    pts = torch.tensor(pts, dtype=torch.float64)
+    target = torch.tensor(target, dtype=torch.float64)
+
+    optimizer = torch.torch.optim.LBFGS(
+        [uvw], lr=0.1, history_size=20, max_iter=10,
+        line_search_fn="strong_wolfe")
+
+    def b(d, dhat=1e-5, kappa=1e3):
+        if d > 0:
+            return torch.tensor(0, requires_grad=True, dtype=torch.float64)
+        return kappa * d**2  # * torch.log(d/dhat + 1)
+
+    def f(uvw):
+        bc = [1 - sum(uvw)] + list(uvw)
+        return (
+            gmapping_energy(order, uvw, pts, target)
+            + sum([b(1-c) for c in bc])
+        )
+
+    # for _ in labeled_tqdm(range(10), "Finding closest point"):
+    for _ in range(10):
+        optimizer.zero_grad()
+        objective = f(uvw)
+        objective.backward()
+        optimizer.step(lambda: f(uvw))
         if objective.item() < eps:
             break
 
-    return tuv0.detach().numpy(), vv
+    uvw = uvw.detach().numpy()
+    t = max(1 - uvw.sum(), 0)
+    uvw[uvw < 0] = 0
+    uvw /= t + uvw.sum()
+    return uvw

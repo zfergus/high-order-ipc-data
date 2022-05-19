@@ -45,15 +45,15 @@ def build_collision_mesh(fe_mesh, div_per_edge):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('mesh', type=pathlib.Path)
-    parser.add_argument('-c,--collision-mesh',
-                        dest="collision_mesh", type=pathlib.Path, default=None)
     parser.add_argument('-o,--order', dest="order",
                         help="order of the displacement",
                         type=int, default=2, choices=range(1, 5))
-    parser.add_argument('-g,--geometric', dest="geom_order",
-                        help="order of the geometric basis",
-                        type=int, default=2, choices=range(1, 5))
     parser.add_argument('-m', dest="div_per_edge", type=int, default=10)
+    parser.add_argument('-c,--collision-mesh',
+                        dest="collision_mesh", type=pathlib.Path, default=None)
+    parser.add_argument('-g,--use-geom', dest="use_geom", action="store_true",
+                        help="use the geometric basis of the mesh",
+                        default=False)
     return parser.parse_args()
 
 
@@ -63,8 +63,15 @@ def main():
 
     # Triangular mesh
     fe_mesh = FEMesh(args.mesh)
+    V_geom = fe_mesh.V.copy()
+    T_geom = fe_mesh.T.copy()
+
     if fe_mesh.order != args.order:
         fe_mesh.attach_higher_order_nodes(args.order)
+
+    if not args.use_geom:
+        V_geom = fe_mesh.V
+        T_geom = fe_mesh.T
     # fe_mesh.save("fem_mesh.msh")
 
     if args.collision_mesh is None:
@@ -79,20 +86,36 @@ def main():
         out_weight = (root_dir / "weights" / "higher_order" /
                       f"{args.mesh.stem}-P{args.order}.hdf5")
     else:
-        V_col = meshio.read(args.collision_mesh).points.astype(float)
+        coll_mesh = meshio.read(args.collision_mesh)
+        V_col = coll_mesh.points.astype(float)
+        F_col = coll_mesh.cells[0].data.astype(int)
         Phi = compute_barycentric_weights(
-            V_col, fe_mesh.V, fe_mesh.P1(), fe_mesh.T,
-            order=fe_mesh.order)
+            V_col, V_geom, T_geom, fe_mesh.V, fe_mesh.T)
 
         out_weight = (root_dir / "weights" / "higher_order" /
                       f"{args.mesh.stem}-P{args.order}-to-{args.collision_mesh.stem}.hdf5")
+        # Phi = load_weights(out_weight)
 
     print(f"saving weights to {out_weight}")
     save_weights(
         out_weight, Phi, fe_mesh.n_vertices(), vertices=fe_mesh.in_vertex_ids,
         edges=fe_mesh.in_edges, faces=fe_mesh.in_faces)
 
-    print("W Error:", np.linalg.norm(Phi @ fe_mesh.V - V_col, np.inf))
+    Err = Phi @ fe_mesh.V - V_col
+    print("Φ Error:", np.abs(Err).max())
+    # print("i:", np.linalg.norm(Err, ord=np.inf, axis=1))
+
+    # U = np.zeros_like(fe_mesh.V)
+    # # U[:, 1] = -0.5 * np.sin(np.pi * fe_mesh.V[:, 2])
+
+    # meshio.write("org.ply", meshio.Mesh(
+    #     V_col, [("triangle", F_col)]))
+    # meshio.write("org_fem.ply", meshio.Mesh(
+    #     fe_mesh.V, [("triangle", fe_mesh.boundary_faces())]))
+    # meshio.write("res.ply", meshio.Mesh(
+    #     V_col + Phi @ U, [("triangle", F_col)]))
+    # meshio.write("fem.ply", meshio.Mesh(
+    #     fe_mesh.V + U, [("triangle", fe_mesh.boundary_faces())]))
 
 
 if __name__ == '__main__':

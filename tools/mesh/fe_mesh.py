@@ -78,6 +78,9 @@ class FEMesh:
     def edges(self):
         return igl.edges(self.P1())
 
+    def boundary_faces(self):
+        return igl.boundary_facets(self.P1())
+
     def attach_higher_order_nodes(self, order):
         """Insert higher order indices at end."""
         # Maintaint the same vertex positions throughout node shuffle

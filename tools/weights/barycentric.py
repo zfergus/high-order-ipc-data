@@ -1,101 +1,172 @@
-import numpy
+import numpy as np
 import scipy.sparse
-from numba import jit, prange
 
 import igl
 import trimesh
 from aabbtree import AABB, AABBTree
 
-from .bases import hat_phis_3D
+from .bases import hat_phis_3D, nodes_count_to_order
 from .point_triangle_distance import pointTriangleDistance
-from .utils import quiet_tqdm, labeled_tqdm
+from .utils import labeled_tqdm
+from mesh.sample_tet import upsample_mesh
+from mesh.invert_gmapping import invert_gmapping
 from mesh.utils import boundary_to_full
 
+import pickle
 
-def distance_to_tet(p, tet, bc):
-    if (0 <= bc).all() and (bc <= 1).all() and abs(bc.sum() - 1) < 1e-12:
-        return numpy.linalg.norm(p - bc.dot(tet))
+
+def uvw_to_bc(uvw):
+    if len(uvw.shape) == 1:
+        return np.array([[1-uvw.sum(), uvw[0], uvw[1], uvw[2]]])
+    return np.hstack([(1 - uvw.sum(axis=1)).reshape(-1, 1), uvw])
+
+
+def bc_to_uvw(bc):
+    if len(bc.shape) == 1:
+        return bc[1:]
+    return bc[:, 1:].flatten()
+
+
+def distance_heuristic(bc):
+    if len(bc) == 3:
+        bc = uvw_to_bc(bc)
+    return np.linalg.norm(bc, ord=1)
+
+
+def is_inside_tet(bc):
+    assert(len(bc) == 4)
+    return (bc >= 0).all()
+
+
+def distance_to_P1_tet(p, tet, bc):
+    if VolumetricClosestPointQuery.inside_tet(bc):
+        return np.linalg.norm(p - bc.dot(tet))
     faces = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
     return min(pointTriangleDistance(tet[f], p) for f in faces)
 
 
 class VolumetricClosestPointQuery:
-    def __init__(self, V, F) -> None:
+    def __init__(self, V, T, samples=4) -> None:
         """
         V: vertices of tet mesh; 2d matrix (|V_tet|, 3)
-        F: tets of tet mesh; 2d matrix (|F|, 4)
+        T: tets of tet mesh; 2d matrix (|T|, 4)
         """
         self.V = V
-        self.F = F
+        self.T = T
+
+        self.mesh_order = nodes_count_to_order[self.T.shape[1]]
+
+        if self.mesh_order > 1:
+            self.V_upsampled, self.T_upsampled, self.Tup2T = upsample_mesh(
+                self.V, self.T, samples)
+            # TODO viz the mesh
+        else:
+            self.V_upsampled, self.T_upsampled = self.V, self.T
+            self.Tup2T = np.arange(self.T.shape[0])
 
         # Build a tree for fast interior checks
         self.tree = AABBTree()
-        for fi, f in enumerate(labeled_tqdm(F, "Build AABB Tree")):
-            limits = numpy.vstack([V[f].min(axis=0), V[f].max(axis=0)]).T
-            self.tree.add(AABB(limits), fi)
+        for tet_i, tet in enumerate(labeled_tqdm(self.T_upsampled, "Build AABB Tree")):
+            limits = np.vstack([self.V_upsampled[tet].min(axis=0),
+                                self.V_upsampled[tet].max(axis=0)]).T
+            self.tree.add(AABB(limits), tet_i)
+        # with open("tree.pkl", "wb") as f:
+        #     pickle.dump(self.tree, f)
+        # with open("tree.pkl", "rb") as f:
+        #     self.tree = pickle.load(f)
 
         # Extract the surface for closest proximity checks of exterior points
-        BF = igl.boundary_facets(F)
-        self.BF2F = boundary_to_full(BF, F)
-        self.proximity_query = trimesh.proximity.ProximityQuery(
-            trimesh.Trimesh(V, BF))
+        if self.mesh_order == 1:
+            BF = igl.boundary_facets(self.T_upsampled)
+            self.BF2T = self.Tup2T[boundary_to_full(BF, self.T_upsampled)]
+            self.bmesh = trimesh.Trimesh(self.V_upsampled, BF)
+            self.proximity_query = trimesh.proximity.ProximityQuery(self.bmesh)
 
-    def __call__(self, p) -> tuple[int, numpy.ndarray]:
+    def __call__(self, p, pi=None) -> tuple[int, np.ndarray]:
         """Find the closest tet and barycentric coordinates to the given point."""
-        limits = numpy.vstack([p, p]).T
-        fis = self.tree.overlap_values(AABB(limits))
+        if self.mesh_order == 1:
+            return self.closest_point_P1(p)
+        if self.mesh_order == 1:
+            return self.closest_point_PN(p)
+
+    def closest_point_P1(self, p) -> tuple[int, np.ndarray]:
+        assert(self.Tup.shape == self.T.shape)
+        limits = np.vstack([p, p]).T
+        tis = self.tree.overlap_values(AABB(limits))
         bcs = igl.barycentric_coordinates_tet(
-            numpy.tile(p, (len(fis), 1)),
-            self.V[self.F[fis, 0]], self.V[self.F[fis, 1]],
-            self.V[self.F[fis, 2]], self.V[self.F[fis, 3]])
+            np.tile(p, (len(tis), 1)),
+            self.V[self.F[tis, 0]], self.V[self.F[tis, 1]],
+            self.V[self.F[tis, 2]], self.V[self.F[tis, 3]])
         bcs = bcs.reshape(-1, 4)
 
-        for fi, bc in zip(fis, bcs):
-            if (0 <= bc).all() and (bc <= 1).all() and abs(bc.sum() - 1) < 1e-12:
-                return fi, bc
+        for ti, bc in zip(tis, bcs):
+            if is_inside_tet(bc):
+                return ti, bc
 
         # point must be on the exterior of the mesh, so find the closest point on the surface
-        _, _, triangle_id = self.proximity_query.on_surface(p.reshape(1, 3))
-        fi = self.BF2F[triangle_id[0]]
+        _, _, bfis = self.proximity_query.on_surface(p.reshape(1, 3))
+        ti = self.BF2F[bfis[0]]
         bc = igl.barycentric_coordinates_tet(
             p.reshape(-1, 3).copy(),
-            self.V[self.F[fi, 0]].copy().reshape(1, 3).copy(),
-            self.V[self.F[fi, 1]].copy().reshape(1, 3).copy(),
-            self.V[self.F[fi, 2]].copy().reshape(1, 3).copy(),
-            self.V[self.F[fi, 3]].copy().reshape(1, 3).copy())
-        return fi, bc
+            self.V[self.F[ti, 0]].copy().reshape(1, 3).copy(),
+            self.V[self.F[ti, 1]].copy().reshape(1, 3).copy(),
+            self.V[self.F[ti, 2]].copy().reshape(1, 3).copy(),
+            self.V[self.F[ti, 3]].copy().reshape(1, 3).copy())
+        return ti, bc
 
-    def brute_force(self, p) -> tuple[int, numpy.ndarray]:
-        """Brute force"""
-        bcs = igl.barycentric_coordinates_tet(
-            numpy.tile(p, (self.F.shape[0], 1)),
-            self.V[self.F[:, 0]], self.V[self.F[:, 1]],
-            self.V[self.F[:, 2]], self.V[self.F[:, 3]])
-        distances = numpy.array([
-            distance_to_tet(p, self.V[f], bc) for bc, f in zip(bcs, self.F)])
-        fi = distances.argmin()
-        return fi, bcs[fi]
+    def uvw0(self, p, ti):
+        # ti = self.Tup2T[ti_up]
+        return bc_to_uvw(igl.barycentric_coordinates_tet(
+            p.reshape(-1, 3).copy(),
+            self.V[self.T[ti, 0]].reshape(-1, 3).copy(),
+            self.V[self.T[ti, 1]].reshape(-1, 3).copy(),
+            self.V[self.T[ti, 2]].reshape(-1, 3).copy(),
+            self.V[self.T[ti, 3]].reshape(-1, 3).copy()))
+
+    def closest_point_PN(self, p) -> tuple[int, np.ndarray]:
+        inflation = 1e-3
+        tis = []
+        while len(tis) < 3:
+            limits = np.vstack([p - inflation, p + inflation]).T
+            tis_up = self.tree.overlap_values(AABB(limits))
+            tis = self.Tup2T[tis_up]
+            tis = np.unique(tis)
+            inflation *= 1.1
+
+        bcs = uvw_to_bc(np.vstack([
+            invert_gmapping(
+                self.mesh_order, self.uvw0(p, ti), self.V[self.T[ti]], p)
+            for ti in tis
+        ]))
+
+        i = np.argmin([distance_heuristic(bc) for bc in bcs])
+        return tis[i], bcs[i]
 
 
-def compute_barycentric_weights(P, V, T_P1, T=None, order=1, quiet=True):
+def compute_barycentric_weights(P, V_geom, T_geom, V_disp=None, T_disp=None):
     """
-    P: points of dense mesh; 2d matrix (|V_dense|, 3)
-    V: vertices of tet mesh; 2d matrix (|V_tet|, 3)
-    T_P1: faces of tet mesh; 2d matrix (|F|, 4)
-    T: Tets with higher order nodes attached
+    P: points of dense mesh; 2d matrix (|P|, 3)
+    V: vertices of tet mesh; 2d matrix (|V|, 3)
+    T_geom: Tets of the geometry (possibly with higher order nodes attached)
+    T_disp: Tets of the displacement (possibly with higher order nodes attached)
     order: basis order
     returns mapping matrix
     """
-    M = scipy.sparse.lil_matrix((P.shape[0], V.shape[0]))
+    if V_disp is None:
+        V_disp = V_geom
+    if T_disp is None:
+        T_disp = T_geom
 
-    if T is None:
-        T = T_P1
+    M = scipy.sparse.lil_matrix((P.shape[0], V_disp.shape[0]))
 
-    closest_point = VolumetricClosestPointQuery(V, T_P1)
+    geom_order = nodes_count_to_order[T_geom.shape[1]]
+    disp_order = nodes_count_to_order[T_disp.shape[1]]
+
+    closest_point = VolumetricClosestPointQuery(V_geom, T_geom)
 
     for pi, p in enumerate(labeled_tqdm(P, "Compute W")):
         ti, bc = closest_point(p)
-        uvw = bc[1:]
-        M[pi, T[ti]] = [phi(*uvw) for phi in hat_phis_3D[order]]
+        M[pi, T_disp[ti]] = [phi(*bc_to_uvw(bc).flatten())
+                             for phi in hat_phis_3D[disp_order]]
 
     return M
