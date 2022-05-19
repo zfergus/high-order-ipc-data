@@ -3,8 +3,12 @@
 SCRIPTS_ROOT=$SCRATCH/decoupled-contact/scripts
 
 SCRIPTS=(
+    "$SCRIPTS_ROOT/friction/armadillo-roller-P2-wCM.json"
+    "$SCRIPTS_ROOT/friction/armadillo-roller-P2.json"
     # "$SCRIPTS_ROOT/friction/armadillo-roller.json"
     # "$SCRIPTS_ROOT/friction/armadillo-roller-baseline.json"
+    # "$SCRIPTS_ROOT/stress-tests/trash-compactor-octocat-P2.json"
+    # "$SCRIPTS_ROOT/stress-tests/trash-compactor-octocat-P2-wCM.json"
     # "$SCRIPTS_ROOT/stress-tests/trash-compactor-octocat.json"
     # "$SCRIPTS_ROOT/stress-tests/trash-compactor-octocat-baseline.json"
     # "$SCRIPTS_ROOT/rigid/screw.json"
@@ -22,12 +26,15 @@ SCRIPTS=(
     # "$SCRIPTS_ROOT/microstructure/microstructure-P1-medium-fixAL.json"
     # "$SCRIPTS_ROOT/microstructure/microstructure-P1-fine-fixAL.json"
     # "$SCRIPTS_ROOT/microstructure/microstructure-P2.json"
-    "$SCRIPTS_ROOT/microstructure/microstructure-P3.json"
-    "$SCRIPTS_ROOT/microstructure/microstructure-P4.json"
+    # "$SCRIPTS_ROOT/microstructure/microstructure-P3.json"
+    # "$SCRIPTS_ROOT/microstructure/microstructure-P4.json"
     # "$SCRIPTS_ROOT/bounce/bounce-P1-baseline-coarse.json"
     # "$SCRIPTS_ROOT/bounce/bounce-P1-baseline-fine.json"
     # "$SCRIPTS_ROOT/bounce/bounce-P1.json"
     # "$SCRIPTS_ROOT/bounce/bounce-P4.json"
+    # "$SCRIPTS_ROOT/higher-order/squish-beam-P1.json"
+    # "$SCRIPTS_ROOT/higher-order/squish-beam-P2.json"
+    # "$SCRIPTS_ROOT/higher-order/squish-beam-P3.json"
 )
 
 LOGS_DIR=$SCRATCH/decoupled-contact/results/logs
