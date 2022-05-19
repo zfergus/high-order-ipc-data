@@ -27,6 +27,8 @@ class FEMesh:
     def __init__(self, filename, cell_i=0) -> None:
         mesh = meshio.read(filename)
 
+        self.name = filename.stem
+
         self.V = mesh.points
 
         assert(len(mesh.cells) > cell_i)

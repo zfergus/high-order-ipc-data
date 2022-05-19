@@ -114,13 +114,15 @@ def build_phi_3D(mesh, div_per_edge):
 
     # Stitch faces together
     print("Building collision mesh")
-    ordering_filename = "order.npz"
+    ordering_filename = f"order_mesh={mesh.name}_m={div_per_edge}.npz"
     try:
         print("\tTrying to loading unique order")
         ordering = np.load(ordering_filename)
         indices = ordering["indices"]
         inverse = ordering["inverse"]
-        # raise Exception("")
+
+        F_coll = np.hstack([inverse[F_coll[:, j]][:, None]
+                            for j in range(F_coll.shape[1])])
     except Exception as e:
         print(f"\tFailed to load from file because {e}")
         print("\tCreating unique order")
@@ -134,12 +136,13 @@ def build_phi_3D(mesh, div_per_edge):
             assert(new_inv.size == 1)
             inverse[i] = new_inv[0]
 
-        print("Saving unique order to order.npz")
+        print(f"\tSaving unique order to {ordering_filename}")
         np.savez(ordering_filename, indices=indices, inverse=inverse)
 
+        F_coll = np.hstack([inverse[F_coll[:, j]][:, None]
+                            for j in range(F_coll.shape[1])])
+
     V_coll = V_coll[indices]
-    F_coll = np.hstack([inverse[F_coll[:, j]][:, None]
-                       for j in range(F_coll.shape[1])])
 
     print("Updating Φ")
     new_phi = phi[indices]
