@@ -1,5 +1,6 @@
 {
     "default_params": "../defaults.json",
+    "discr_order": 2, 
     "problem_params": {
         "rhs": [0, 9.81, 0]
     },
