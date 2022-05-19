@@ -28,7 +28,7 @@
     }],
     "collision_mesh": {
         "mesh": "../../meshes/armadillo/verschoor/armadillo_fine.ply",
-        "linear_map": "../../weights/higher_order/armadillo_curved_P4-to-armadillo_fine.hdf5"
+        "linear_map": "../../weights/higher_order/armadillo_P4-P2-to-armadillo_fine.hdf5"
     },
     "obstacles": [{
         "mesh": "../../meshes/obstacles/verschoor/roller0.obj",
