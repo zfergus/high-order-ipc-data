@@ -4,6 +4,7 @@ import scipy.sparse
 import igl
 import trimesh
 from aabbtree import AABB, AABBTree
+from tqdm import tqdm
 
 from .bases import hat_phis_3D, nodes_count_to_order
 from .point_triangle_distance import pointTriangleDistance
@@ -86,8 +87,7 @@ class VolumetricClosestPointQuery:
         """Find the closest tet and barycentric coordinates to the given point."""
         if self.mesh_order == 1:
             return self.closest_point_P1(p)
-        if self.mesh_order == 1:
-            return self.closest_point_PN(p)
+        return self.closest_point_PN(p)
 
     def closest_point_P1(self, p) -> tuple[int, np.ndarray]:
         assert(self.T_upsampled.shape == self.T.shape)
@@ -143,6 +143,18 @@ class VolumetricClosestPointQuery:
         return tis[i], bcs[i]
 
 
+def foo(pi0) -> tuple[int, np.ndarray]:
+    pi1 = pi0 + 1000
+    with open("VolumetricClosestPointQuery.pkl", "rb") as f:
+        closest_point, P = pickle.load(f)
+    data = []
+    for pi, p in zip(range(pi0, min(pi1, P.shape[0])), P[pi0:pi1]):
+        print(pi)
+        ti, bc = closest_point(p)
+        data.append((pi, ti, bc.tolist()))
+    return data
+
+
 def compute_barycentric_weights(P, V_geom, T_geom, V_disp=None, T_disp=None):
     """
     P: points of dense mesh; 2d matrix (|P|, 3)
@@ -162,10 +174,29 @@ def compute_barycentric_weights(P, V_geom, T_geom, V_disp=None, T_disp=None):
     geom_order = nodes_count_to_order[T_geom.shape[1]]
     disp_order = nodes_count_to_order[T_disp.shape[1]]
 
-    closest_point = VolumetricClosestPointQuery(V_geom, T_geom)
+    # closest_point = VolumetricClosestPointQuery(V_geom, T_geom)
+    # with open("VolumetricClosestPointQuery.pkl", "wb") as f:
+    #     pickle.dump((closest_point, P), f)
+    # with open("VolumetricClosestPointQuery.pkl", "rb") as f:
+    #     closest_point, P = pickle.load(f)
+
+    # from multiprocessing import Pool
+    # with Pool(12) as p:
+    #     data = p.map(foo, tqdm(range(0, P.shape[0], 1000)))
+
+    from subprocess import Popen, DEVNULL
+
+    # Python >= 3.3 has subprocess.DEVNULL
+    for i in range(0, P.shape[0], 100):
+        Popen(['nohup', 'python', 'tools/worker.py', str(i), str(i+100)],
+              stdout=DEVNULL, stderr=DEVNULL)
+    print("spawned and exiting")
+    exit(0)
 
     for pi, p in enumerate(labeled_tqdm(P, "Compute W")):
         ti, bc = closest_point(p)
+        with open(f"rows/{pi}.pkl", "wb") as f:
+            pickle.dump((pi, ti, bc.tolist()), f)
         M[pi, T_disp[ti]] = [phi(*bc_to_uvw(bc).flatten())
                              for phi in hat_phis_3D[disp_order]]
 
