@@ -242,3 +242,5 @@ phi.hdf5
 *_config.txt
 notebooks/rhos.txt
 /*.npz
+rows*
+/*.pkl

@@ -1,0 +1,55 @@
+{
+    "default_params": "../defaults.json",
+    "discr_order": 2,
+    "problem_params": {
+        "rhs": [0, 9800, 0]
+    },
+    "solver_params": {
+        "broad_phase_method": "STQ",
+        "gradNorm": 1e-4
+    },
+    "tend": 2,
+    "dt": 0.01,
+    "dhat": 1e-5,
+    "mu": 0.3,
+    "al_weight": 1e8,
+    "max_al_weight": 1e13,
+    "meshes": [{
+        "mesh": "../../meshes/microstructure/microstructure_P4.msh",
+        "scale": 6,
+        "body_id": 1
+    }],
+    "has_collision": true,
+    "boundary_sidesets": [{
+        "id": 2,
+        "axis": 2,
+        "position": 0.99,
+        "relative": true
+    }, {
+        "id": 4,
+        "axis": -2,
+        "position": 0.01,
+        "relative": true
+    }],
+    "body_params": [{
+        "id": 1,
+        "E": 6e6,
+        "nu": 0.48,
+        "rho": 1.03
+    }],
+    "collision_mesh": {
+        "mesh": "../../meshes/microstructure/microstructure_P4-P4-collision-mesh.obj",
+        "linear_map": "../../weights/higher_order/microstructure_P4-P1.hdf5",
+        "scale": 6
+    },
+    "obstacles":[{
+        "mesh": "../../meshes/cube/cube.ply",
+        "position": [3, 6.12, 3],
+        "dimensions": [9, 0.2, 9],
+        "displacement": [0, "4.5 * smooth_abs(t - 1, 5) - 4.5", 0]
+    }, {
+        "mesh": "../../meshes/cube/cube.ply",
+        "position": [3, -0.12, 3],
+        "dimensions": [9, 0.2, 9]
+    }]
+}
