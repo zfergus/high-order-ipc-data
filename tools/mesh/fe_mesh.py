@@ -27,6 +27,7 @@ class FEMesh:
     def __init__(self, filename, cell_i=0) -> None:
         mesh = meshio.read(filename)
 
+        self.path = filename
         self.name = filename.stem
 
         self.V = mesh.points

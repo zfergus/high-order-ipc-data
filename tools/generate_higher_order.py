@@ -24,9 +24,10 @@ def build_collision_mesh(fe_mesh, div_per_edge):
             fe_mesh.n_nodes(), fe_mesh.n_vertices(), fe_mesh.BE, fe_mesh.BE2E,
             fe_mesh.order, div_per_edge)
         F_col = None
+        E_higher = None
     else:
         assert(fe_mesh.dim() == 3)
-        Phi, F_col = build_phi_3D(fe_mesh, div_per_edge)
+        Phi, F_col, E_higher = build_phi_3D(fe_mesh, div_per_edge)
         E_col = None
 
     # compute collision vertices
@@ -39,7 +40,7 @@ def build_collision_mesh(fe_mesh, div_per_edge):
         V_col, F_col if E_col is None else E_col, 1e-7)
     print(f"{V_col.shape[0] - _V_col.shape[0]} duplicate vertices found")
 
-    return Phi, V_col, E_col, F_col
+    return Phi, V_col, E_col, F_col, E_higher
 
 
 def parse_args():
@@ -73,13 +74,18 @@ def main():
         fe_mesh.attach_higher_order_nodes(args.order)
 
     if args.collision_mesh is None:
-        Phi, V_col, E_col, F_col = build_collision_mesh(
+        Phi, V_col, E_col, F_col, E_higher = build_collision_mesh(
             fe_mesh, args.div_per_edge)
 
         out_coll_mesh = (
             args.mesh.parent / f"{args.mesh.stem}-P{args.order}-collision-mesh.obj")
         print(f"saving collision mesh to {out_coll_mesh}")
         write_obj(out_coll_mesh, V_col, E=E_col, F=F_col)
+
+        out_edges = (args.mesh.parent
+                     / f"{args.mesh.stem}-P{args.order}-higher-order-edges.txt")
+        print(f"saving higher order edges to {out_edges}")
+        np.savetxt(out_edges, E_higher, fmt='%d')
 
         out_weight = (root_dir / "weights" / "higher_order" /
                       f"{args.mesh.stem}-P{args.order}.hdf5")
@@ -104,10 +110,11 @@ def main():
     # print("i:", np.linalg.norm(Err, ord=np.inf, axis=1))
 
     # U = np.zeros_like(fe_mesh.V)
-    # # U[:, 1] = -0.5 * np.sin(np.pi * fe_mesh.V[:, 2])
+    # U[:, 1] = -0.5 * np.sin(np.pi * fe_mesh.V[:, 2])
+    # U[:, 1] *= fe_mesh.V
 
     # meshio.write("org.ply", meshio.Mesh(
-    #     V_col, [("triangle", F_col)]))
+    #     Phi @ fe_mesh.V, [("triangle", F_col)]))
     # meshio.write("org_fem.ply", meshio.Mesh(
     #     fe_mesh.V, [("triangle", fe_mesh.boundary_faces())]))
     # meshio.write("res.ply", meshio.Mesh(

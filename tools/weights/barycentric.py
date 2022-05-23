@@ -1,3 +1,5 @@
+import pathlib
+import meshio
 import numpy as np
 import scipy.sparse
 
@@ -13,6 +15,7 @@ from mesh.sample_tet import upsample_mesh
 from mesh.invert_gmapping import invert_gmapping
 from mesh.utils import boundary_to_full
 
+from subprocess import Popen, DEVNULL
 import pickle
 
 
@@ -174,29 +177,55 @@ def compute_barycentric_weights(P, V_geom, T_geom, V_disp=None, T_disp=None):
     geom_order = nodes_count_to_order[T_geom.shape[1]]
     disp_order = nodes_count_to_order[T_disp.shape[1]]
 
-    # closest_point = VolumetricClosestPointQuery(V_geom, T_geom)
-    # with open("VolumetricClosestPointQuery.pkl", "wb") as f:
-    #     pickle.dump((closest_point, P), f)
-    # with open("VolumetricClosestPointQuery.pkl", "rb") as f:
-    #     closest_point, P = pickle.load(f)
+    closest_point = VolumetricClosestPointQuery(V_geom, T_geom)
 
-    # from multiprocessing import Pool
-    # with Pool(12) as p:
-    #     data = p.map(foo, tqdm(range(0, P.shape[0], 1000)))
+    # query_path = pathlib.Path("VolumetricClosestPointQuery.pkl")
+    # if query_path.exists():
+    #     with open("VolumetricClosestPointQuery.pkl", "rb") as f:
+    #         closest_point, P = pickle.load(f)
+    # else:
+    #     closest_point = VolumetricClosestPointQuery(V_geom, T_geom)
+    #     with open("VolumetricClosestPointQuery.pkl", "wb") as f:
+    #         pickle.dump((closest_point, P), f)
 
-    from subprocess import Popen, DEVNULL
+    # n = 500
+    # for i in range(0, P.shape[0], n):
+    #     Popen(['nohup', 'python', 'tools/worker.py', str(i), str(i+n)],
+    #           stdout=DEVNULL, stderr=DEVNULL)
+    # print("spawned and exiting")
+    # exit(0)
 
-    # Python >= 3.3 has subprocess.DEVNULL
-    for i in range(0, P.shape[0], 100):
-        Popen(['nohup', 'python', 'tools/worker.py', str(i), str(i+100)],
-              stdout=DEVNULL, stderr=DEVNULL)
-    print("spawned and exiting")
-    exit(0)
+    # pis = set()
+    # for i in range(0, P.shape[0], n):
+    #     with open(f"rows/{i}-{i+n}_updated.pkl", "rb") as f:
+    #         data = pickle.load(f)
+    #     updated_data = []
+    #     for pi, ti, bc in labeled_tqdm(data, "Compute W"):
+    #         assert(pi not in pis)
+    #         pis.add(pi)
+
+    #         if not np.isfinite(bc).all():
+    #             print(f"recomputing {pi}")
+    #             ti, bc = closest_point(P[pi])
+
+    #         M[pi, T_disp[ti]] = [phi(*bc[1:])
+    #                              for phi in hat_phis_3D[disp_order]]
+
+    #         # err = np.linalg.norm(P[pi] - M[pi] @ V_disp, ord=np.Inf)
+    #         # if err > 1e-4:
+    #         #     print(f"recomputing {pi}")
+    #         #     ti, bc = closest_point(P[pi])
+    #         #     new_err = np.linalg.norm(P[pi] - M[pi] @ V_disp, ord=np.Inf)
+    #         #     breakpoint()
+
+    #         updated_data.append((pi, ti, bc))
+    #     # with open(f"rows/{i}-{i+n}_updated.pkl", "wb") as f:
+    #     #     pickle.dump(updated_data, f)
+    # for pi in range(P.shape[0]):
+    #     assert(pi in pis)
 
     for pi, p in enumerate(labeled_tqdm(P, "Compute W")):
         ti, bc = closest_point(p)
-        with open(f"rows/{pi}.pkl", "wb") as f:
-            pickle.dump((pi, ti, bc.tolist()), f)
         M[pi, T_disp[ti]] = [phi(*bc_to_uvw(bc).flatten())
                              for phi in hat_phis_3D[disp_order]]
 

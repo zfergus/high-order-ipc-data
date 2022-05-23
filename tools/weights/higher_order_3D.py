@@ -78,9 +78,11 @@ def uv_to_uvw(u, v, fi):
 def build_phi_3D(mesh, div_per_edge):
     """Build Φ_3D"""
     V_grid, F_grid = regular_2D_grid(div_per_edge)
-    alphas, betas = numpy.hsplit(V_grid, 2)
+    alphas, betas = np.hsplit(V_grid, 2)
     n_grid_v = V_grid.shape[0]
     n_grid_f = F_grid.shape[0]
+    BE_grid = igl.boundary_facets(F_grid)
+    n_grid_be = BE_grid.shape[0]
 
     # Boundary in full ids
     BF = igl.boundary_facets(mesh.P1())
@@ -90,7 +92,10 @@ def build_phi_3D(mesh, div_per_edge):
     phi = scipy.sparse.lil_matrix((n_grid_v * BF.shape[0], mesh.n_nodes()))
 
     # Faces of the collision mesh (initially not stitched together)
-    F_coll = numpy.zeros((n_grid_f * BF.shape[0], 3), dtype=int)
+    F_coll = np.zeros((n_grid_f * BF.shape[0], 3), dtype=int)
+
+    # Edges cooresponding to the edges on the higher order mesh
+    E_higher = np.zeros((n_grid_be * BF.shape[0], 2), dtype=int)
 
     for fi, f in enumerate(labeled_tqdm(BF, "Building Φ")):
         nodes = mesh.T[BF2T[fi]]
@@ -103,8 +108,11 @@ def build_phi_3D(mesh, div_per_edge):
             phi[rows, node_i] = hat_phis_3D[mesh.order][i](
                 *uv_to_uvw(alphas, betas, fi_in_tet))
 
-        F_coll[fi * n_grid_f: (fi + 1) * n_grid_f] = (
+        F_coll[fi * n_grid_f:(fi + 1) * n_grid_f] = (
             F_grid.copy() + fi * n_grid_v)
+
+        E_higher[fi * n_grid_be:(fi+1) * n_grid_be] = (
+            BE_grid.copy() + fi * n_grid_v)
 
     # Compute V_coll to remove duplicates
     phi = phi.tocsc()
@@ -112,15 +120,17 @@ def build_phi_3D(mesh, div_per_edge):
 
     # Stitch faces together
     print("Building collision mesh")
-    ordering_filename = f"order_mesh={mesh.name}_m={div_per_edge}.npz"
+    ordering_filename = (
+        mesh.path.parent / f"order_mesh={mesh.name}_m={div_per_edge}.npz")
     try:
-        print("\tTrying to loading unique order")
+        print(f"\tTrying to loading unique order {ordering_filename}")
         ordering = np.load(ordering_filename)
         indices = ordering["indices"]
         inverse = ordering["inverse"]
 
-        F_coll = np.hstack([inverse[F_coll[:, j]][:, None]
+        F_coll = np.hstack([inverse[F_coll[:, j]].reshape(-1, 1)
                             for j in range(F_coll.shape[1])])
+        print("\tSuccess")
     except Exception as e:
         print(f"\tFailed to load from file because {e}")
         print("\tCreating unique order")
@@ -146,7 +156,11 @@ def build_phi_3D(mesh, div_per_edge):
     new_phi = phi[indices]
     assert(abs(new_phi[inverse] - phi).max() < 1e-13)
     phi = new_phi.tocsc()
-    assert(numpy.linalg.norm(phi @ mesh.V - V_coll, ord=numpy.Inf) < 1e-13)
+    assert(np.linalg.norm(phi @ mesh.V - V_coll, ord=np.Inf) < 1e-13)
+
+    E_higher = np.hstack([inverse[E_higher[:, j]].reshape(-1, 1)
+                          for j in range(E_higher.shape[1])])
+    E_higher = np.unique(np.sort(E_higher), axis=0)
 
     # Fix face orientation
     print("Checking face orientation")
@@ -156,4 +170,4 @@ def build_phi_3D(mesh, div_per_edge):
 
     print(f"|F|={F_coll.shape} |V|={V_coll.shape} |Φ|={phi.shape}")
 
-    return phi, F_coll
+    return phi, F_coll, E_higher

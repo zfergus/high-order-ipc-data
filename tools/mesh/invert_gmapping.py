@@ -76,7 +76,9 @@ def invert_gmapping(order, uvw0, pts, target, eps=1e-4, ignore_uvw=True):
             return invert_gmapping(
                 order, uvw0, pts, target, eps=eps, ignore_uvw=False)
         else:
-            return np.full(3, np.Inf)  # not converges, so dont use this value
+            return invert_gmapping(
+                order, 10 * np.random.rand(3) - 5, pts, target, eps=eps, ignore_uvw=False)
+            # return np.full(3, np.Inf)  # not converges, so dont use this value
 
     return uvw.detach().numpy()
 
