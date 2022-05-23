@@ -24,12 +24,16 @@
 
     "export": {
         "paraview": "sol.vtu",
+        "#wireframe": true,
         "body_ids": true,
-        "material_params": true
+        "material_params": true,
+        "high_order_mesh": true,
+        "#high_order_mesh": false
     },
     "quadrature_order": 1,
     "save_time_sequence": true,
     "save_solve_sequence_debug": false,
     "vismesh_rel_area": 10000000,
+    "#vismesh_rel_area": 1e-5,
     "output": "sim.json"
 }

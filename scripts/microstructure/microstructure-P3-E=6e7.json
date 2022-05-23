@@ -1,6 +1,6 @@
 {
     "default_params": "../defaults.json",
-    "discr_order": 2,
+    "discr_order": 3,
     "problem_params": {
         "rhs": [0, 9800, 0]
     },
@@ -33,13 +33,13 @@
     }],
     "body_params": [{
         "id": 1,
-        "E": 6e6,
+        "E": 6e7,
         "nu": 0.48,
         "rho": 1.03
     }],
-    "collision_mesh": {
+    "#collision_mesh": {
         "mesh": "../../meshes/microstructure/microstructure_P4-P4-collision-mesh.obj",
-        "linear_map": "../../weights/higher_order/microstructure_P4-P2.hdf5",
+        "linear_map": "../../weights/higher_order/microstructure_P4-P3.hdf5",
         "scale": 6
     },
     "obstacles":[{
