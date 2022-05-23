@@ -8,7 +8,9 @@ h5py
 tqdm
 rtree
 networkx
-# igl
-# pymesh
 quadpy
 torch
+triangle
+# igl
+# pymesh
+# meshplot
