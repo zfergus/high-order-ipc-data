@@ -3,10 +3,12 @@ import numpy as np
 import meshio
 import igl
 
-from weights.bases import gmsh_to_basis_order, basis_order_to_gmsh
+from weights.bases import (
+    basis_order_to_gmsh,
+    nodes_count_to_order,
+)
 from .attach_higher_order_nodes import attach_higher_order_nodes
-from .utils import faces
-from .write_obj import write_obj
+from .utils import faces, boundary_to_full
 
 tetra_type_to_order = {
     "tetra": 1,
@@ -30,36 +32,35 @@ class FEMesh:
         self.path = filename
         self.name = filename.stem
 
-        self.V = mesh.points
+        self.V_geometry = mesh.points
+        self.V_displace = mesh.points
 
         assert(len(mesh.cells) > cell_i)
 
         for cell in mesh.cells:
             if cell.type == "triangle":
-                self.T = cell.data
+                T = cell.data
+                self.T_geometry = cell.data
                 break
             elif "tetra" in cell.type:
-                self.order = tetra_type_to_order[cell.type]
-                self.T = cell.data[:, gmsh_to_basis_order[self.order]]
+                T = cell.data
+                self.T_geometry = cell.data
                 break
-            # else:
-            #     raise NotImplementedError(
-            #         f"FEMesh not implemented for {cell.type}")
+        self.T_displace = T
 
         *_, J = igl.remove_unreferenced(self.V, self.P1())
         self.in_vertex_ids = J
         self.in_faces = self.faces()
         self.in_edges = self.edges()
 
-        # if self.order != 1:
-        #     # TODO: Reorder the nodes to be [V; E; F; C] and set to input positions
-        #     self.attach_higher_order_nodes(self.order)
-
     def dim(self):
-        return self.V.shape[1]
+        return self.V_geometry.shape[1]
 
-    def n_nodes(self):
-        return self.V.shape[0]
+    def n_geom_nodes(self):
+        return self.V_geometry.shape[0]
+
+    def n_disp_nodes(self):
+        return self.V_displace.shape[0]
 
     def n_vertices(self):
         return self.in_vertex_ids.size
@@ -71,42 +72,32 @@ class FEMesh:
         return self.F.shape[0]
 
     def P1(self):
-        return self.T[:, :self.dim()+1]
+        return self.T_displace[:, :self.dim()+1]
 
-    def faces(self):
-        return faces(self.P1())
+    def faces(self, T=None):
+        return faces(T if T is not None else self.P1())
 
-    def edges(self):
-        return igl.edges(self.P1())
+    def edges(self, T=None):
+        return igl.edges(T if T is not None else self.P1())
+
+    def geometric_order(self):
+        return nodes_count_to_order[self.T_geometry.shape[1]]
+
+    def geometric_order(self):
+        return nodes_count_to_order[self.T_displace.shape[1]]
 
     def boundary_faces(self):
-        return igl.boundary_facets(self.P1())
+        BF = igl.boundary_facets(self.P1())
+        BF2T = boundary_to_full(BF, self.P1())
+        return BF, BF2T
 
     def attach_higher_order_nodes(self, order):
         """Insert higher order indices at end."""
-        # Maintaint the same vertex positions throughout node shuffle
-        if order == self.order:
-            V_old = self.V.copy()
-            T_old = self.T.copy()
-
         # Remove any currently attached HO nodes
-        V, self.T, *_ = igl.remove_unreferenced(self.V, self.P1())
-
+        V, T, *_ = igl.remove_unreferenced(self.V_displace, self.P1())
         # Replace the nodes and tets with the HO ones
         self.V, self.T = attach_higher_order_nodes(
-            V, self.edges(), self.faces(), self.T, order)
-        assert((self.V[:V.shape[0]] == V).all())
-
-        if order == self.order:
-            V_new = self.V.copy()
-            for i, vi_new in np.ndenumerate(self.T):
-                assert(i[1] > 3 or (self.V[vi_new] == V_old[T_old[i]]).all())
-                V_new[vi_new] = V_old[T_old[i]]
-            self.V = V_new
-            # self.save("test.msh")
-            # exit()
-
-        self.order = order
+            V, self.edges(T), self.faces(T), T, order)
 
     def save(self, filename):
         print(f"saving FEM mesh to {filename}")
