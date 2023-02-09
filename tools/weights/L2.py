@@ -71,7 +71,7 @@ def compute_L2_projection_weights(v_fem, f_fem, v_coll, f_coll, lump_mass_matrix
     numpy.savetxt(str(L2_dir / "quadrature" / "weights.csv"),
                   scheme.weights.tolist(), delimiter=",")
 
-    quadrature = L2.Quadraturue()
+    quadrature = L2.Quadrature()
 
     fem_bases = L2.build_bases(v_fem, f_fem)
     coll_bases = L2.build_bases(v_coll, f_coll)
