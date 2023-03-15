@@ -11,7 +11,7 @@
     "mu": 0.5,
     "friction_iterations": 20,
     "meshes": [{
-        "mesh": "../../meshes/ball.msh",
+        "mesh": "../../meshes/sphere/sphere-coarse.msh",
         "position": [0, 0, 0],
         "body_id": 1
     }],
@@ -21,9 +21,9 @@
         "#E": 1e5,
         "nu": 0.4,
         "rho": 1000
-        }],
+    }],
     "obstacles": [{
-        "mesh": "../../meshes/plane.obj",
+        "mesh": "../../meshes/obstacles/plane.obj",
         "position": [0, -1, 0],
         "rotation": [0, 0, -15],
         "dimensions": [10, 0, 2]

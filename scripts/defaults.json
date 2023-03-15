@@ -28,7 +28,9 @@
         "body_ids": true,
         "material_params": true,
         "high_order_mesh": true,
-        "#high_order_mesh": false
+        "#high_order_mesh": false,
+        "contact_forces": true,
+        "friction_forces": true
     },
     "quadrature_order": 1,
     "save_time_sequence": true,
