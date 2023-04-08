@@ -24,7 +24,8 @@
     },
     "solver": {
         "contact": {
-            "friction_iterations": 20
+            "friction_iterations": -1,
+            "barrier_stiffness": 1e10
         }
     },
     "boundary_conditions": {
