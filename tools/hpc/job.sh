@@ -19,5 +19,5 @@ OUTPUT_ROOT=$SCRATCH/decoupled-contact/results
 OUTPUT_DIR="$OUTPUT_ROOT/${SCRIPT_REL%.*}"
 
 # Run job
-cd $SCRATCH/polyfem/build/release
+cd $SCRATCH/old-polyfem/build
 ./PolyFEM_bin -j $SCRIPT -o $OUTPUT_DIR --ngui --log_level debug
