@@ -1,6 +1,6 @@
 # High-Order Incremental Potential Contact for Elastodynamic Simulation on Curved Meshes 
 
-A repository of the data and script used in our work, "High-Order Incremental Potential Contact for Elastodynamic Simulation on Curved Meshes" [Ferguson et al. 2022].
+A repository of the data and script used in our work, ["High-Order Incremental Potential Contact for Elastodynamic Simulation on Curved Meshes" [Ferguson et al. 2022]](https://zferg.us/research/high-order-ipc/).
 
 The scripts are input files for [PolyFEM](https://polyfem.github.io).
 
