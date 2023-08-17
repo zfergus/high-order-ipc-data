@@ -54,7 +54,7 @@ Eigen::Vector3d Basis::gmapping(const Eigen::Vector3d& bc) const
 
 double Basis::grad_gmapping(const Eigen::Vector3d& bc) const
 {
-    return cross(v1 - v0, v2 - v0).norm();
+    return 0.5 * cross(v1 - v0, v2 - v0).norm();
 }
 
 std::vector<Basis>
