@@ -8,9 +8,9 @@ h5py
 tqdm
 rtree
 networkx
-quadpy
 torch
-triangle
-# igl
+triangle==20220202
+libigl
+# quadpy
 # pymesh
 # meshplot
