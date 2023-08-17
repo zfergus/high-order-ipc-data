@@ -2,7 +2,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=16
-#SBATCH --time=12:00:00
+#SBATCH --time=96:00:00
 #SBATCH --mem=64GB
 
 # Load modules
@@ -19,5 +19,5 @@ OUTPUT_ROOT=$SCRATCH/decoupled-contact/results
 OUTPUT_DIR="$OUTPUT_ROOT/${SCRIPT_REL%.*}"
 
 # Run job
-cd $SCRATCH/old-polyfem/build
+cd $SCRATCH/polyfem/build/release
 ./PolyFEM_bin -j $SCRIPT -o $OUTPUT_DIR --ngui --log_level debug
