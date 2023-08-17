@@ -1,5 +1,5 @@
 {
-    "common": "../defaults.json",
+    "common": "../common.json",
     "geometry": [{
         "mesh": "../../meshes/mat/mat20x20-collision-mesh.msh",
         "transformation": {

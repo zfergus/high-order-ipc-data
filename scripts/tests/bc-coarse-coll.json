@@ -1,5 +1,5 @@
 {
-    "common": "../defaults.json",
+    "common": "../common.json",
     "geometry": [{
         "mesh": "../../meshes/cube/cube-sub4.msh",
         "volume_selection": 1,

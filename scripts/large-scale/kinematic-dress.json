@@ -1,5 +1,5 @@
 {
-    "common": "defaults.json",
+    "common": "common.json",
     "geometry": [{
         "mesh": "../../meshes/kinematic-dress/dress_unfolded_noButtons_1_4th_proxies.msh",
         "transformation": {

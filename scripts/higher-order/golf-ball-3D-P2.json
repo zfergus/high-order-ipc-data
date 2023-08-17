@@ -1,5 +1,5 @@
 {
-    "default_params": "../defaults.json",
+    "default_params": "../common.json",
     "discr_order": 1,
     "problem_params": {
         "initial_velocity": [{
@@ -9,7 +9,7 @@
         "rhs": [0, 0, 0]
     },
     "solver_params": {
-        "gradNorm": 1e-7, 
+        "gradNorm": 1e-7,
         "useGradNorm": true
     },
     "tend": 4e-3,

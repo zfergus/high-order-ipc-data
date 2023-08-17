@@ -1,5 +1,5 @@
 {
-    "default_params": "../defaults.json",
+    "default_params": "../common.json",
     "discr_order": 1,
     "problem_params": {
         "rhs": [0, 9800, 0]
@@ -37,7 +37,7 @@
         "nu": 0.48,
         "rho": 1.03
     }],
-    "obstacles":[{
+    "obstacles": [{
         "mesh": "../../meshes/cube/cube.ply",
         "position": [3, 6.12, 3],
         "dimensions": [9, 0.2, 9],

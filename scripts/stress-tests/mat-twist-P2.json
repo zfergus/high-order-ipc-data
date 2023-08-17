@@ -1,5 +1,5 @@
 {
-    "default_params": "../defaults.json",
+    "default_params": "../common.json",
     "discr_order": 2,
     "problem_params": {
         "dirichlet_boundary": [{

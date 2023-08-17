@@ -1,5 +1,5 @@
 {
-    "common": "../defaults.json",
+    "common": "../common.json",
     "geometry": [{
         "mesh": "../../meshes/2D/triangle_ref1.obj",
         "transformation": {
