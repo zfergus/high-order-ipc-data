@@ -22,6 +22,7 @@
         "json": "sim.json",
         "paraview": {
             "file_name": "sim.pvd",
+            "surface": true,
             "high_order_mesh": true,
             "options": {
                 "material": true,
