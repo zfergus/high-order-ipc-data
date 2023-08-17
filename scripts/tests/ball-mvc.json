@@ -1,38 +1,52 @@
 {
-    "default_params": "../defaults.json",
-    "problem_params": {
+    "common": "../defaults.json",
+    "geometry": [{
+        "mesh": "../../meshes/cube-symmetric.msh",
+        "transformation": {
+            "translation": [0, 0, 0]
+        },
+        "volume_selection": 1
+    }, {
+        "mesh": "../../meshes/plane.obj",
+        "is_obstacle": true,
+        "transformation": {
+            "translation": [0, -1, 0],
+            "rotation": [0, 0, -15],
+            "dimensions": [10, 0, 2]
+        }
+    }],
+    "time": {
+        "tend": 5,
+        "time_steps": 200
+    },
+    "contact": {
+        "friction_coefficient": 0.5,
+        "collision_mesh": {
+            "mesh": "../../meshes/ball.obj",
+            "linear_map": "../../weights/mean_value/cube-symmetric-to-ball.hdf5"
+        }
+    },
+    "solver": {
+        "contact": {
+            "friction_iterations": 20,
+            "CCD": {
+                "broad_phase": "STQ_GPU"
+            }
+        }
+    },
+    "boundary_conditions": {
         "rhs": [0, 9.81, 0]
     },
-    "solver_params": {
-        "broad_phase_method": "STQ_GPU"
-    },
-    "tend": 5,
-    "time_steps": 200,
-    "mu": 0.5,
-    "friction_iterations": 20,
-    "meshes": [{
-        "mesh": "../../meshes/cube-symmetric.msh",
-        "position": [0, 0, 0],
-        "body_id": 1
-    }],
-    "body_params": [{
+    "materials": [{
         "id": 1,
-        "#E": 2e11,
-        "E": 1e5,
+        "E": 100000.0,
         "nu": 0.4,
-        "rho": 1000
+        "rho": 1000,
+        "type": "NeoHookean"
     }],
-    "collision_mesh": {
-        "mesh": "../../meshes/ball.obj",
-        "linear_map": "../../weights/mean_value/cube-symmetric-to-ball.hdf5"
-    },
-    "obstacles": [{
-        "mesh": "../../meshes/plane.obj",
-        "position": [0, -1, 0],
-        "rotation": [0, 0, -15],
-        "dimensions": [10, 0, 2]
-    }],
-    "export": {
-        "time_sequence": "ball.pvd"
+    "output": {
+        "paraview": {
+            "file_name": "ball.pvd"
+        }
     }
 }

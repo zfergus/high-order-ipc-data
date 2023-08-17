@@ -1,34 +1,52 @@
 {
-    "default_params": "../defaults.json",
-    "problem_params": {
-        "rhs":[0,0,0]
-    },
-    "tend": 5,
-    "time_steps": 50,
-    "mu": 0.5,
-    "friction_iterations": 10,
-    "meshes": [{
+    "common": "../defaults.json",
+    "geometry": [{
         "mesh": "../../meshes/beam-bending/beam-bending.msh",
-        "position": [0, 0, 0],
-        "rotation": [0, 0, 0],
-        "body_id": 1
-    }],
-    "body_params": [{
-        "id": 1,
-        "E": 1e7,
-        "nu": 0.4,
-        "rho": 1000
-    }],
-    "obstacles": [{
+        "transformation": {
+            "translation": [0, 0, 0],
+            "rotation": [0, 0, 0]
+        },
+        "volume_selection": 1
+    }, {
         "mesh": "../../meshes/obstacles/plane.obj",
-        "position": [0, -1.5, 0],
-        "rotation": [0, 0, 0],
-        "#displacement": [0, "min(10-t, t)", 0]
+        "is_obstacle": true,
+        "transformation": {
+            "translation": [0, -1.5, 0],
+            "rotation": [0, 0, 0]
+        }
+    }, {
+        "mesh": "../../meshes/obstacles/plane.obj",
+        "is_obstacle": true,
+        "transformation": {
+            "translation": [0, 8, 0],
+            "rotation": [10, 0, 0]
+        },
+        "surface_selection": 1001
+    }],
+    "boundary_conditions": {
+        "obstacle_displacements": [{
+            "id": 1001,
+            "value": [0, "max(t-10, -t)", 0]
+        }],
+        "rhs": [0, 0, 0]
     },
-    {
-        "mesh": "../../meshes/obstacles/plane.obj",
-        "position": [0, 8, 0],
-        "rotation": [10, 0, 0],
-        "displacement": [0, "max(t-10, -t)", 0]
+    "time": {
+        "tend": 5,
+        "time_steps": 50
+    },
+    "contact": {
+        "friction_coefficient": 0.5
+    },
+    "solver": {
+        "contact": {
+            "friction_iterations": 10
+        }
+    },
+    "materials": [{
+        "id": 1,
+        "E": 10000000.0,
+        "nu": 0.4,
+        "rho": 1000,
+        "type": "NeoHookean"
     }]
 }

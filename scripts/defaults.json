@@ -1,41 +1,39 @@
 {
-    "problem": "GenericTensor",
-    "tensor_formulation": "NeoHookean",
-
-    "problem_params": {
-        "is_time_dependent": true
+    "contact": {
+        "enabled": true,
+        "dhat": 0.001
     },
-
-    "nl_solver": "newton",
-    "solver_params": {
-        "mtype": 2,
-        "gradNorm": 1e-5,
-        "useGradNorm": false
+    "solver": {
+        "linear": {
+            "solver": "Eigen::PardisoLDLT"
+        },
+        "nonlinear": {
+            "line_search": {
+                "method": "backtracking"
+            },
+            "solver": "newton",
+            "x_delta": 1e-05
+        },
+        "advanced": {
+            "lump_mass_matrix": false
+        }
     },
-    "solver_type": "Eigen::PardisoLDLT",
-    "line_search": "backtracking",
-    "project_to_psd": true,
-    "lump_mass_matrix": false,
-
-    "has_collision": true,
-    "dhat": 1e-3,
-
-    "normalize_mesh": false,
-
-    "export": {
-        "paraview": "sol.vtu",
-        "#wireframe": true,
-        "body_ids": true,
-        "material_params": true,
-        "high_order_mesh": true,
-        "#high_order_mesh": false,
-        "contact_forces": true,
-        "friction_forces": true
-    },
-    "quadrature_order": 1,
-    "save_time_sequence": true,
-    "save_solve_sequence_debug": false,
-    "vismesh_rel_area": 10000000,
-    "#vismesh_rel_area": 1e-5,
-    "output": "sim.json"
+    "output": {
+        "json": "sim.json",
+        "paraview": {
+            "file_name": "sim.pvd",
+            "high_order_mesh": true,
+            "options": {
+                "material": true,
+                "body_ids": true,
+                "contact_forces": true,
+                "friction_forces": true
+            },
+            "vismesh_rel_area": 10000000
+        },
+        "advanced": {
+            "save_solve_sequence_debug": false,
+            "save_time_sequence": true
+        }
+    }
 }

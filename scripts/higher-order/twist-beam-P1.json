@@ -1,42 +1,45 @@
 {
-    "default_params": "../defaults.json",
-    "discr_order": 1,
-    "problem_params": {
+    "common": "../defaults.json",
+    "geometry": [{
+        "mesh": "../../meshes/beam/beam.msh",
+        "volume_selection": 1,
+        "surface_selection": [{
+            "id": 2,
+            "axis": 2,
+            "position": 0.999,
+            "relative": true
+        }, {
+            "id": 4,
+            "axis": -2,
+            "position": 0.001,
+            "relative": true
+        }]
+    }],
+    "space": {
+        "discr_order": 1
+    },
+    "time": {
+        "tend": 1,
+        "dt": 0.01
+    },
+    "contact": {
+        "dhat": 0.001
+    },
+    "boundary_conditions": {
+        "rhs": [0, 0, 0],
         "dirichlet_boundary": [{
             "id": 2,
-            "value": [
-                "rotate_2D_x(x, z, -2 * pi * t) - x",
-                0,
-                "rotate_2D_y(x, z, -2 * pi * t) - z"
-            ]
+            "value": ["rotate_2D_x(x, z, -2 * pi * t) - x", 0, "rotate_2D_y(x, z, -2 * pi * t) - z"]
         }, {
             "id": 4,
             "value": [0, 0, 0]
-        }],
-        "rhs": [0, 0, 0]
+        }]
     },
-    "tend": 1,
-    "dt": 0.01,
-    "dhat": 1e-3,
-    "meshes": [{
-        "mesh": "../../meshes/beam/beam.msh",
-        "body_id": 1
-    }],
-    "boundary_sidesets": [{
-        "id": 2,
-        "axis": 2,
-        "position": 0.999,
-        "relative": true
-    }, {
-        "id": 4,
-        "axis": -2,
-        "position": 0.001,
-        "relative": true
-    }],
-    "body_params": [{
+    "materials": [{
         "id": 1,
         "E": 2000000,
         "nu": 0.4,
-        "rho": 1000
+        "rho": 1000,
+        "type": "NeoHookean"
     }]
 }

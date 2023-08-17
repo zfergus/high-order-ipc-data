@@ -1,32 +1,45 @@
 {
-    "default_params": "../defaults.json",
-    "discr_order": 1,
-    "problem_params": {
+    "common": "../defaults.json",
+    "geometry": [{
+        "mesh": "../../meshes/sphere/sphere-fine.msh",
+        "transformation": {
+            "scale": 0.23876
+        },
+        "volume_selection": 1
+    }, {
+        "mesh": "../../meshes/obstacles/plane.obj",
+        "is_obstacle": true,
+        "transformation": {
+            "translation": [0, -0.2, 0],
+            "dimensions": [1, 0, 1]
+        }
+    }],
+    "space": {
+        "discr_order": 1,
+        "advanced": {
+            "bc_method": "sample"
+        }
+    },
+    "time": {
+        "tend": 1,
+        "dt": 0.001
+    },
+    "contact": {
+        "friction_coefficient": 0.2
+    },
+    "solver": {
+        "nonlinear": {
+            "grad_norm": 1e-12
+        }
+    },
+    "boundary_conditions": {
         "rhs": [0, 9.81, 0]
     },
-    "bc_method": "sample",
-    "solver_params": {
-        "gradNorm": 1e-12,
-        "useGradNorm": true
-    },
-    "tend": 1,
-    "dt": 1e-3,
-    "mu": 0.2,
-    "meshes": [{
-        "mesh": "../../meshes/sphere/sphere-fine.msh",
-        "scale": 0.23876,
-        "body_id": 1
-    }],
-    "body_params": [{
+    "materials": [{
         "id": 1,
         "E": 591000,
         "nu": 0.45,
-        "rho": 700
-    }],
-    "obstacles": [{
-        "mesh": "../../meshes/obstacles/plane.obj",
-        "position": [0, -0.2, 0],
-        "dimensions": [1, 0, 1]
-    }],
-    "skip_frame": 10
+        "rho": 700,
+        "type": "NeoHookean"
+    }]
 }

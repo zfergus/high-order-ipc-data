@@ -1,30 +1,41 @@
 {
-    "default_params": "../defaults.json",
-    "problem_params": {
+    "common": "../defaults.json",
+    "geometry": [{
+        "mesh": "../../meshes/gargoyle/gargoyle.msh",
+        "volume_selection": 1
+    }, {
+        "mesh": "../../meshes/obstacles/plane.obj",
+        "is_obstacle": true,
+        "transformation": {
+            "translation": [-5, -3, 2],
+            "dimensions": [10, 0, 10]
+        }
+    }],
+    "time": {
+        "tend": 5,
+        "time_steps": 200
+    },
+    "contact": {
+        "friction_coefficient": 0
+    },
+    "solver": {
+        "contact": {
+            "friction_iterations": 1
+        }
+    },
+    "boundary_conditions": {
         "rhs": [0, 9.81, 0]
     },
-    "tend": 5,
-    "time_steps": 200,
-    "mu": 0,
-    "friction_iterations": 1,
-    "meshes": [{
-        "mesh": "../../meshes/gargoyle/gargoyle.msh",
-        "position": [0, 0, 0],
-        "body_id": 1
-    }],
-    "body_params": [{
+    "materials": [{
         "id": 1,
-        "E": 1e5,
+        "E": 100000.0,
         "nu": 0.2,
-        "rho": 1000
+        "rho": 1000,
+        "type": "NeoHookean"
     }],
-    "obstacles": [{
-        "mesh": "../../meshes/obstacles/plane.obj",
-        "position": [-5, -3, 2],
-        "rotation": [0, 0, 0],
-        "dimensions": [10, 0, 10]
-    }],
-    "export": {
-        "time_sequence": "falling.pvd"
+    "output": {
+        "paraview": {
+            "file_name": "falling.pvd"
+        }
     }
 }

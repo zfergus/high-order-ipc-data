@@ -1,37 +1,51 @@
 {
-    "#comment": "model is in mm, but we simulate in cgs",
-    "default_params": "defaults.json",
-    "problem_params": {
+    "common": "defaults.json",
+    "geometry": [{
+        "mesh": "../../meshes/kinematic-dress/dress_unfolded_noButtons_1_4th_proxies.msh",
+        "transformation": {
+            "scale": 0.1
+        },
+        "volume_selection": 1
+    }, {
+        "mesh": "../../meshes/kinematic-dress/hooks.obj",
+        "is_obstacle": true,
+        "transformation": {
+            "scale": 0.1
+        }
+    }],
+    "time": {
+        "tend": 5,
+        "time_steps": 1
+    },
+    "contact": {
+        "dhat": 0.1,
+        "friction_coefficient": 0,
+        "collision_mesh": {
+            "mesh": "../../meshes/kinematic-dress/dress_unfolded_noButtons_1_4th.obj",
+            "linear_map": "../../weights/kinematic-dress/dress_unfolded_noButtons_1_4th_proxy_weights.hdf5"
+        }
+    },
+    "solver": {
+        "contact": {
+            "friction_iterations": 1,
+            "CCD": {
+                "broad_phase": "STQ"
+            }
+        }
+    },
+    "boundary_conditions": {
         "rhs": [0, 0, 980.665]
     },
-    "solver_params": {
-        "broad_phase_method": "STQ"
-    },
-    "tend": 5,
-    "time_steps": 1,
-    "mu": 0,
-    "friction_iterations": 1,
-    "dhat": 0.1,
-    "meshes": [{
-        "mesh": "../../meshes/kinematic-dress/dress_unfolded_noButtons_1_4th_proxies.msh",
-        "scale": 0.1,
-        "body_id": 1
-    }],
-    "body_params": [{
+    "materials": [{
         "id": 1,
-        "E": 2.7e10,
+        "E": 27000000000.0,
         "nu": 0.4,
-        "rho": 1.15
+        "rho": 1.15,
+        "type": "NeoHookean"
     }],
-    "collision_mesh": {
-        "mesh": "../../meshes/kinematic-dress/dress_unfolded_noButtons_1_4th.obj",
-        "linear_map": "../../weights/kinematic-dress/dress_unfolded_noButtons_1_4th_proxy_weights.hdf5"
-    },
-    "obstacles": [{
-        "mesh": "../../meshes/kinematic-dress/hooks.obj",
-        "scale": 0.1
-    }],
-    "export": {
-        "time_sequence": "kinematic-dress.pvd"
+    "output": {
+        "paraview": {
+            "file_name": "kinematic-dress.pvd"
+        }
     }
 }

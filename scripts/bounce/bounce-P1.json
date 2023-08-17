@@ -1,37 +1,50 @@
 {
-    "default_params": "../defaults.json",
-    "discr_order": 1,
-    "problem_params": {
+    "common": "../defaults.json",
+    "geometry": [{
+        "mesh": "../../meshes/sphere/P1-coarse.msh",
+        "transformation": {
+            "scale": 0.11938
+        },
+        "volume_selection": 1
+    }, {
+        "mesh": "../../meshes/obstacles/plane.obj",
+        "is_obstacle": true,
+        "transformation": {
+            "translation": [0, -0.2, 0],
+            "dimensions": [1, 0, 1]
+        }
+    }],
+    "space": {
+        "discr_order": 1,
+        "advanced": {
+            "bc_method": "sample"
+        }
+    },
+    "time": {
+        "tend": 1,
+        "dt": 0.001
+    },
+    "contact": {
+        "friction_coefficient": 0.2,
+        "collision_mesh": {
+            "mesh": "../../meshes/sphere/P4-coarse-P4-collision-mesh.obj",
+            "linear_map": "../../weights/barycentric/P1-coarse-to-P4-coarse-P4-collision-mesh.hdf5",
+            "scale": 0.11938
+        }
+    },
+    "solver": {
+        "nonlinear": {
+            "grad_norm": 1e-12
+        }
+    },
+    "boundary_conditions": {
         "rhs": [0, 9.81, 0]
     },
-    "bc_method": "sample",
-    "solver_params": {
-        "gradNorm": 1e-12,
-        "useGradNorm": true
-    },
-    "tend": 1,
-    "dt": 1e-3,
-    "mu": 0.2,
-    "meshes": [{
-        "mesh": "../../meshes/sphere/P1-coarse.msh",
-        "scale": 0.11938,
-        "body_id": 1
-    }],
-    "body_params": [{
+    "materials": [{
         "id": 1,
         "E": 591000,
         "nu": 0.45,
-        "rho": 700
-    }],
-    "collision_mesh": {
-        "mesh": "../../meshes/sphere/P4-coarse-P4-collision-mesh.obj",
-        "linear_map": "../../weights/barycentric/P1-coarse-to-P4-coarse-P4-collision-mesh.hdf5",
-        "scale": 0.11938
-    },
-    "obstacles": [{
-        "mesh": "../../meshes/obstacles/plane.obj",
-        "position": [0, -0.2, 0],
-        "dimensions": [1, 0, 1]
-    }],
-    "skip_frame": 10
+        "rho": 700,
+        "type": "NeoHookean"
+    }]
 }
