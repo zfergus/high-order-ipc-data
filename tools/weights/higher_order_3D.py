@@ -10,6 +10,69 @@ import igl
 from .bases import *
 from .utils import labeled_tqdm
 from mesh.utils import boundary_to_full, faces_to_edges, sorted_tuple, faces
+from mesh.write_obj import write_obj
+
+
+def regular_2D_grid(n):
+    delta = 1 / (n - 1)
+    # map from (i, j) coordinates to vertex id
+    ij2v = np.full((n, n), -1)
+    V = []
+
+    # Corner Vertices
+    V.extend([[0, 0], [1, 0], [0, 1]])
+    ij2v[0, 0] = 0
+    ij2v[-1, 0] = 1
+    ij2v[0, -1] = 2
+
+    # Edge vertices
+    # [0, 0] -> [1, 0]
+    ij2v[1:-1, 0] = np.arange(n - 2) + 3
+    V.extend([[x, 0] for x in np.linspace(0, 1, n)[1:-1]])
+    # [1, 0] -> [0, 1]
+    ij2v[np.arange(n - 2, 0, -1), np.arange(1, n - 1)] = (
+        np.arange(n - 2) + (3 + n - 2))
+    V.extend([[1 - x, x] for x in np.linspace(0, 1, n)[1:-1]])
+    # [0, 1] -> [0, 0]
+    ij2v[0, -2:0:-1] = np.arange(n - 2) + (3 + 2 * (n - 2))
+    V.extend([[0, 1 - y] for y in np.linspace(0, 1, n)[1:-1]])
+
+    # Interior vertices
+    for j in range(1, n - 1):
+        for i in range(1, n - 1):
+            if i + j >= n - 1:
+                break
+            ij2v[i, j] = len(V)
+            V.append([i * delta, j * delta])
+
+    # Create triangulated faces
+    F = []
+    for i, j in itertools.product(range(n - 1), range(n - 1)):
+        for f in [ij2v[[i, i + 1, i], [j, j, j + 1]],
+                  ij2v[[i + 1, i + 1, i], [j, j + 1, j + 1]]]:
+            if (f >= 0).all():
+                F.append(f)
+
+    return np.array(V), np.array(F)
+
+
+def find_row_in_array(A, a):
+    for i, ai in enumerate(A):
+        if sorted_tuple(a) == sorted_tuple(ai):
+            return i
+    raise ValueError("unable to find row")
+
+
+def uv_to_uvw(u, v, fi):
+    assert(fi >= 0 and fi < 4)
+    if fi == 0:
+        return u, v, np.zeros_like(u)
+    elif fi == 1:
+        return u, np.zeros_like(u), v
+    elif fi == 2:
+        return 1 - u - v, u, v
+    elif fi == 3:
+        return np.zeros_like(u), u, v
 
 
 def build_phi_3D(mesh, div_per_edge):
@@ -22,7 +85,8 @@ def build_phi_3D(mesh, div_per_edge):
     n_grid_be = BE_grid.shape[0]
 
     # Boundary in full ids
-    BF, BF2T = mesh.boundary_faces()
+    BF = igl.boundary_facets(mesh.P1())
+    BF2T = boundary_to_full(BF, mesh.P1())
 
     # The order of Φ's rows will be: corners then edge interior then face interior
     phi = scipy.sparse.lil_matrix((n_grid_v * BF.shape[0], mesh.n_nodes()))
